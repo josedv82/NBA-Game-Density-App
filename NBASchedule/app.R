@@ -1393,7 +1393,7 @@ acities <- us.cities %>%
 
 
 ##################################################
-#Logos
+#Logos Team
 
 df <- data.frame(val = c("Atlanta Hawks","Boston Celtics", "Brooklyn Nets", "Charlotte Hornets", "Chicago Bulls", "Cleveland Cavaliers", "Dallas Mavericks",
                          "Denver Nuggets", "Detroit Pistons", "Golden State Warriors", "Houston Rockets", "Indiana Pacers", "Los Angeles Clippers", "Los Angeles Lakers",
@@ -1433,7 +1433,74 @@ df$img = c(
   sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/utah-jazz-logo.png' width=30px><div class='jhr'>%s</div></img>", df$val[29]),
   sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/washington-wizards-logo.png' width=30px><div class='jhr'>%s</div></img>", df$val[30]))
   
+#Logos for opening dashboard
 
+Logos <- sche %>% 
+  select(Date, Team, Opponent) %>%
+  
+  mutate(Team_Logo = 
+           ifelse(Team == "Atlanta Hawks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/atlanta-hawks-logo.png' width=200px></img>", 
+           ifelse(Team == "Boston Celtics", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/boston-celtics-logo.png' width=200px></img>", 
+           ifelse(Team == "Brooklyn Nets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/brooklyn-nets-logo.png' width=200px></img>", 
+           ifelse(Team == "Charlotte Hornets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/charlotte-hornets-logo.png' width=200px></img>", 
+           ifelse(Team == "Chicago Bulls", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/chicago-bulls-logo.png' width=200px></img>", 
+           ifelse(Team == "Cleveland Cavaliers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/cleveland-cavaliers-logo.png' width=200px></img>", 
+           ifelse(Team == "Dallas Mavericks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/dallas-mavericks-logo.png' width=200px></img>", 
+           ifelse(Team == "Denver Nuggets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/denver-nuggets-logo.png' width=200px></img>", 
+           ifelse(Team == "Detroit Pistons", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/detroit-pistons-logo.png' width=200px></img>", 
+           ifelse(Team == "Golden State Warriors", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/golden-state-warriors-logo.png' width=200px></img>", 
+           ifelse(Team == "Houston Rockets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/houston-rockets-logo.png' width=200px></img>", 
+           ifelse(Team == "Indiana Pacers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/indiana-pacers-logo.png' width=200px></img>", 
+           ifelse(Team == "Los Angeles Clippers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-clippers-logo.png' width=200px></img>", 
+           ifelse(Team == "Los Angeles Lakers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-lakers-logo.png' width=200px></img>", 
+           ifelse(Team == "Memphis Grizzlies", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/memphis-grizzlies-logo.png' width=200px></img>", 
+           ifelse(Team == "Miami Heat", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/miami-heat-logo.png' width=200px></img>", 
+           ifelse(Team == "Milwaukee Bucks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/milwaukee-bucks-logo.png' width=200px></img>", 
+           ifelse(Team == "Minnesota Timberwolves", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/minnesota-timberwolves-logo.png' width=200px></img>", 
+           ifelse(Team == "New Orleans Pelicans", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-orleans-pelicans-logo.png' width=200px></img>", 
+           ifelse(Team == "New York Knicks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-york-knicks-logo.png' width=200px></img>", 
+           ifelse(Team == "Oklahoma City Thunder", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/oklahoma-city-thunder-logo.png' width=200px></img>", 
+           ifelse(Team == "Orlando Magic", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/orlando-magic-logo.png' width=200px></img>", 
+           ifelse(Team == "Philadelphia 76ers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/philadelphia-76ers-logo.png' width=200px></img>", 
+           ifelse(Team == "Phoenix Suns", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/phoenix-suns-logo.png' width=200px></img>",
+           ifelse(Team == "Portland Trail Blazers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/portland-trail-blazers-logo.png' width=200px></img>", 
+           ifelse(Team == "Sacramento Kings", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/sacramento-kings-logo.png' width=200px></img>", 
+           ifelse(Team == "San Antonio Spurs", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/san-antonio-spurs-logo.png' width=200px></img>", 
+           ifelse(Team == "Toronto Raptors", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/toronto-raptors-logo.png' width=200px></img>", 
+           ifelse(Team == "Washington Wizards", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/washington-wizards-logo.png' width=200px></img>", 
+           ifelse(Team == "Utah Jazz", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/utah-jazz-logo.png' width=200px></img>", ""))))))))))))))))))))))))))))))) %>%
+  
+  mutate(Opp_Logo = 
+           ifelse(Opponent == "Atlanta Hawks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/atlanta-hawks-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Boston Celtics", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/boston-celtics-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Brooklyn Nets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/brooklyn-nets-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Charlotte Hornets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/charlotte-hornets-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Chicago Bulls", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/chicago-bulls-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Cleveland Cavaliers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/cleveland-cavaliers-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Dallas Mavericks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/dallas-mavericks-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Denver Nuggets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/denver-nuggets-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Detroit Pistons", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/detroit-pistons-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Golden State Warriors", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/golden-state-warriors-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Houston Rockets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/houston-rockets-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Indiana Pacers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/indiana-pacers-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Los Angeles Clippers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-clippers-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Los Angeles Lakers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-lakers-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Memphis Grizzlies", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/memphis-grizzlies-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Miami Heat", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/miami-heat-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Milwaukee Bucks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/milwaukee-bucks-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Minnesota Timberwolves", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/minnesota-timberwolves-logo.png' width=200px></img>", 
+           ifelse(Opponent == "New Orleans Pelicans", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-orleans-pelicans-logo.png' width=200px></img>", 
+           ifelse(Opponent == "New York Knicks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-york-knicks-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Oklahoma City Thunder", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/oklahoma-city-thunder-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Orlando Magic", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/orlando-magic-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Philadelphia 76ers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/philadelphia-76ers-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Phoenix Suns", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/phoenix-suns-logo.png' width=200px></img>",
+           ifelse(Opponent == "Portland Trail Blazers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/portland-trail-blazers-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Sacramento Kings", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/sacramento-kings-logo.png' width=200px></img>", 
+           ifelse(Opponent == "San Antonio Spurs", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/san-antonio-spurs-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Toronto Raptors", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/toronto-raptors-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Washington Wizards", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/washington-wizards-logo.png' width=200px></img>", 
+           ifelse(Opponent == "Utah Jazz", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/utah-jazz-logo.png' width=200px></img>", "")))))))))))))))))))))))))))))))
 
 ###################################################
 
@@ -1514,6 +1581,12 @@ ui <- dashboardPagePlus(
   #the following code provides functionality for the main body of the dashboard
   body = dashboardBody(
     
+    #code to supress error messages when inputs are removed
+    tags$style(type="text/css",
+               ".shiny-output-error { visibility: hidden; }",
+               ".shiny-output-error:before { visibility: hidden; }"
+    ),
+    
     #this piece helps alight the logos in the picker input
     tags$head(tags$style(".jhr{ display: inline;vertical-align: middle;padding-left: 10px;}")),
     
@@ -1531,14 +1604,62 @@ ui <- dashboardPagePlus(
     # Tab items for team by team tab
     tabItem(
       tabName = "teambyteam",
-      tabBox(title = "", id = "tab1", height = "100%", width = "100%",
+      tabBox(title = "", id = "tab1", height = "100%", width = "100%", 
              
-      tabPanel("Game Card", icon = icon("map-marked-alt"),
+      tabPanel("Game Card", icon = icon("map-marked-alt"), 
                fluidRow(column(width = 4, uiOutput("date"))),
-               
-               fluidRow(column(width = 12, withLoader(DT::dataTableOutput("game_table", width = "100%"), type = "html", loader = "loader1"))),
-               fluidRow(column(width = 12, withLoader(plotOutput("map_plot", width = "100%"), type = "html", loader = "loader1")))
-                        ),  
+               tags$hr(),
+               #fluidRow(column(width = 12, withLoader(DT::dataTableOutput("game_table", width = "100%"), type = "html", loader = "loader1"))),
+               fluidRow(
+                 
+                 #teamDash
+                 column(width = 4, align="center", 
+                        htmlOutput("team_logo"),
+                        uiOutput("team"), 
+                        htmlOutput("location_team"), 
+                        uiOutput("team_points"), 
+                        htmlOutput("team_label"),
+                        tags$br(),
+                        htmlOutput("density_team"), 
+                        tags$br(),
+                        htmlOutput("text_index1"),
+                        htmlOutput("team_index"),
+                        tags$br(),
+                        htmlOutput("text_movindex1"),
+                        htmlOutput("team_movindex")
+                        ),
+                 
+                 #game details
+                 column(width = 4, align = "center",
+                        htmlOutput("city"),
+                        htmlOutput("arena"),
+                        tags$br(),
+                        htmlOutput("route"),
+                        htmlOutput("distance"),
+                        withLoader(plotOutput("map_plot", width = "100%", height = "500px"), type = "html", loader = "loader1")
+                        ),
+                 
+                 
+                 #OpponentDash
+                 column(width = 4, align="center", 
+                        
+                        htmlOutput("opponent_logo"),
+                        uiOutput("opponent"), 
+                        htmlOutput("location_opponent"),
+                        uiOutput("opponent_points"), 
+                        htmlOutput("opponent_label"),
+                        tags$br(),
+                        htmlOutput("density_opponent"), 
+                        tags$br(),
+                        htmlOutput("text_index2"),
+                        htmlOutput("opponent_index"),
+                        tags$br(),
+                        htmlOutput("text_movindex2"),
+                        htmlOutput("opponent_movindex")
+                 )
+                 
+                        ) #fluidrow
+                        ),#tabpanel  
       
       tabPanel("Schedule Table", icon = icon("calendar-alt"), fluidRow(column(width = 12, withLoader(DT::dataTableOutput("team_table", width = "100%"), type = "html", loader = "loader1")))),
       tabPanel("Rolling Density", icon = icon("chart-line"), fluidRow(column(width = 12, withLoader(plotlyOutput("team_plot", height = "auto", width = "100%"), type = "html", loader = "loader1")))),
@@ -1780,9 +1901,15 @@ server <- function(input, output, session) {
   #add months and rolling average for stress
   sche1 <- reactive({
     
+    
     sche %>% 
+      
+      
+      filter(Season == input$season_filter) %>%
+      
       mutate(Season = as.factor(Season)) %>%
       group_by(Team, Season) %>%
+      
       mutate(Month = ifelse(Month == 1, 'January',
                             ifelse(Month == 2, 'February',
                                    ifelse(Month == 3, 'March',
@@ -1886,7 +2013,7 @@ server <- function(input, output, session) {
       
       #
       
-      mutate(MovIndex = round(roll_meanr(Normalized, n = input$rolling, align = "right", fill = NA, na.rm = T),2))
+      mutate(MovIndex = round(roll_meanr(Normalized, n = input$rolling, align = "right", fill = 0, na.rm = T),2))
     
   })
   
@@ -1920,6 +2047,9 @@ server <- function(input, output, session) {
   
   cities <- reactive({
     
+    validate(
+      need(input$team_filter, "")
+    )
     
     us.cities %>% 
       filter(name == "Houston TX" | 
@@ -2001,101 +2131,101 @@ server <- function(input, output, session) {
       
       #correcting for missing coordinates for first games of the season for each team
       
-      mutate(destLat = ifelse(is.na(destLat) & Team == "Atlanta Hawks", citiesB %>% filter(City == "Atlanta") %>% select(Latitude) %>% as.numeric(), 
-                       ifelse(is.na(destLat) & Team == "Boston Celtics", citiesB %>% filter(City == "Boston") %>% select(Latitude) %>% as.numeric(),      
-                       ifelse(is.na(destLat) & Team == "New Orleans Pelicans", citiesB %>% filter(City == "New Orleans") %>% select(Latitude) %>% as.numeric(), 
-                       ifelse(is.na(destLat) & Team == "Houston Rockets", citiesB %>% filter(City == "Houston") %>% select(Latitude) %>% as.numeric(), 
-                       ifelse(is.na(destLat) & Team == "Oklahoma City Thunder", citiesB %>% filter(City == "Oklahoma") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "New York Knicks", citiesB %>% filter(City == "New York") %>% select(Latitude) %>% as.numeric(),  
-                       ifelse(is.na(destLat) & Team == "Charlotte Hornets", citiesB %>% filter(City == "Charlotte") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Miami Heat", citiesB %>% filter(City == "Miami") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Phoenix Suns", citiesB %>% filter(City == "Phoenix") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Utah Jazz", citiesB %>% filter(City == "Utah") %>% select(Latitude) %>% as.numeric(),  
-                       ifelse(is.na(destLat) & Team == "Los Angeles Lakers", citiesB %>% filter(City == "Los Angeles") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Los Angeles Clippers", citiesB %>% filter(City == "Los Angeles") %>% select(Latitude) %>% as.numeric(),       
-                       ifelse(is.na(destLat) & Team == "Dallas Mavericks", citiesB %>% filter(City == "Dallas") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Milwaukee Bucks", citiesB %>% filter(City == "Milwaukee") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Philadelphia 76ers", citiesB %>% filter(City == "Philadelphia") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Minnesota Timberwolves", citiesB %>% filter(City == "Minnesota") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Golden State Warriors", citiesB %>% filter(City == "San Francisco") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Portland Trail Blazers", citiesB %>% filter(City == "Portland") %>% select(Latitude) %>% as.numeric(),       
-                       ifelse(is.na(destLat) & Team == "Denver Nuggets", citiesB %>% filter(City == "Denver") %>% select(Latitude) %>% as.numeric(),       
-                       ifelse(is.na(destLat) & Team == "Sacramento Kings", citiesB %>% filter(City == "Sacramento") %>% select(Latitude) %>% as.numeric(),       
-                       ifelse(is.na(destLat) & Team == "Detroit Pistons", citiesB %>% filter(City == "Detroit") %>% select(Latitude) %>% as.numeric(),       
-                       ifelse(is.na(destLat) & Team == "Memphis Grizzlies", citiesB %>% filter(City == "Memphis") %>% select(Latitude) %>% as.numeric(),       
-                       ifelse(is.na(destLat) & Team == "Cleveland Cavaliers", citiesB %>% filter(City == "Cleveland") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Chicago Bulls", citiesB %>% filter(City == "Chicago") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Orlando Magic", citiesB %>% filter(City == "Orlando") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Washington Wizards", citiesB %>% filter(City == "Washington D.C.") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Indiana Pacers", citiesB %>% filter(City == "Indiana") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "San Antonio Spurs", citiesB %>% filter(City == "San Antonio") %>% select(Latitude) %>% as.numeric(),
-                       ifelse(is.na(destLat) & Team == "Toronto Raptors", citiesB %>% filter(City == "Toronto") %>% select(Latitude) %>% as.numeric(), 
-                       ifelse(is.na(destLat) & Team == "Brooklyn Nets", citiesB %>% filter(City == "New York") %>% select(Latitude) %>% as.numeric(),       
+      mutate(destLat = ifelse(is.na(destLat) & Team == "Atlanta Hawks", acities %>% filter(City == "Atlanta") %>% select(Latitude) %>% as.numeric(), 
+                       ifelse(is.na(destLat) & Team == "Boston Celtics", acities %>% filter(City == "Boston") %>% select(Latitude) %>% as.numeric(),      
+                       ifelse(is.na(destLat) & Team == "New Orleans Pelicans", acities %>% filter(City == "New Orleans") %>% select(Latitude) %>% as.numeric(), 
+                       ifelse(is.na(destLat) & Team == "Houston Rockets", acities %>% filter(City == "Houston") %>% select(Latitude) %>% as.numeric(), 
+                       ifelse(is.na(destLat) & Team == "Oklahoma City Thunder", acities %>% filter(City == "Oklahoma") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "New York Knicks", acities %>% filter(City == "New York") %>% select(Latitude) %>% as.numeric(),  
+                       ifelse(is.na(destLat) & Team == "Charlotte Hornets", acities %>% filter(City == "Charlotte") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Miami Heat", acities %>% filter(City == "Miami") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Phoenix Suns", acities %>% filter(City == "Phoenix") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Utah Jazz", acities %>% filter(City == "Utah") %>% select(Latitude) %>% as.numeric(),  
+                       ifelse(is.na(destLat) & Team == "Los Angeles Lakers", acities %>% filter(City == "Los Angeles") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Los Angeles Clippers", acities %>% filter(City == "Los Angeles") %>% select(Latitude) %>% as.numeric(),       
+                       ifelse(is.na(destLat) & Team == "Dallas Mavericks", acities %>% filter(City == "Dallas") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Milwaukee Bucks", acities %>% filter(City == "Milwaukee") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Philadelphia 76ers", acities %>% filter(City == "Philadelphia") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Minnesota Timberwolves", acities %>% filter(City == "Minnesota") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Golden State Warriors", acities %>% filter(City == "San Francisco") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Portland Trail Blazers", acities %>% filter(City == "Portland") %>% select(Latitude) %>% as.numeric(),       
+                       ifelse(is.na(destLat) & Team == "Denver Nuggets", acities %>% filter(City == "Denver") %>% select(Latitude) %>% as.numeric(),       
+                       ifelse(is.na(destLat) & Team == "Sacramento Kings", acities %>% filter(City == "Sacramento") %>% select(Latitude) %>% as.numeric(),       
+                       ifelse(is.na(destLat) & Team == "Detroit Pistons", acities %>% filter(City == "Detroit") %>% select(Latitude) %>% as.numeric(),       
+                       ifelse(is.na(destLat) & Team == "Memphis Grizzlies", acities %>% filter(City == "Memphis") %>% select(Latitude) %>% as.numeric(),       
+                       ifelse(is.na(destLat) & Team == "Cleveland Cavaliers", acities %>% filter(City == "Cleveland") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Chicago Bulls", acities %>% filter(City == "Chicago") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Orlando Magic", acities %>% filter(City == "Orlando") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Washington Wizards", acities %>% filter(City == "Washington D.C.") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Indiana Pacers", acities %>% filter(City == "Indiana") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "San Antonio Spurs", acities %>% filter(City == "San Antonio") %>% select(Latitude) %>% as.numeric(),
+                       ifelse(is.na(destLat) & Team == "Toronto Raptors", acities %>% filter(City == "Toronto") %>% select(Latitude) %>% as.numeric(), 
+                       ifelse(is.na(destLat) & Team == "Brooklyn Nets", acities %>% filter(City == "New York") %>% select(Latitude) %>% as.numeric(),       
                        destLat))))))))))))))))))))))))))))))) %>%
       
-      mutate(destLon = ifelse(is.na(destLon) & Team == "Atlanta Hawks", citiesB %>% filter(City == "Atlanta") %>% select(Longitude) %>% as.numeric(), 
-                       ifelse(is.na(destLon) & Team == "Boston Celtics", citiesB %>% filter(City == "Boston") %>% select(Longitude) %>% as.numeric(),      
-                       ifelse(is.na(destLon) & Team == "New Orleans Pelicans", citiesB %>% filter(City == "New Orleans") %>% select(Longitude) %>% as.numeric(), 
-                       ifelse(is.na(destLon) & Team == "Houston Rockets", citiesB %>% filter(City == "Houston") %>% select(Longitude) %>% as.numeric(), 
-                       ifelse(is.na(destLon) & Team == "Oklahoma City Thunder", citiesB %>% filter(City == "Oklahoma") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "New York Knicks", citiesB %>% filter(City == "New York") %>% select(Longitude) %>% as.numeric(),  
-                       ifelse(is.na(destLon) & Team == "Charlotte Hornets", citiesB %>% filter(City == "Charlotte") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Miami Heat", citiesB %>% filter(City == "Miami") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Phoenix Suns", citiesB %>% filter(City == "Phoenix") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Utah Jazz", citiesB %>% filter(City == "Utah") %>% select(Longitude) %>% as.numeric(),  
-                       ifelse(is.na(destLon) & Team == "Los Angeles Lakers", citiesB %>% filter(City == "Los Angeles") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Los Angeles Clippers", citiesB %>% filter(City == "Los Angeles") %>% select(Longitude) %>% as.numeric(),       
-                       ifelse(is.na(destLon) & Team == "Dallas Mavericks", citiesB %>% filter(City == "Dallas") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Milwaukee Bucks", citiesB %>% filter(City == "Milwaukee") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Philadelphia 76ers", citiesB %>% filter(City == "Philadelphia") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Minnesota Timberwolves", citiesB %>% filter(City == "Minnesota") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Golden State Warriors", citiesB %>% filter(City == "San Francisco") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Portland Trail Blazers", citiesB %>% filter(City == "Portland") %>% select(Longitude) %>% as.numeric(),       
-                       ifelse(is.na(destLon) & Team == "Denver Nuggets", citiesB %>% filter(City == "Denver") %>% select(Longitude) %>% as.numeric(),       
-                       ifelse(is.na(destLon) & Team == "Sacramento Kings", citiesB %>% filter(City == "Sacramento") %>% select(Longitude) %>% as.numeric(),       
-                       ifelse(is.na(destLon) & Team == "Detroit Pistons", citiesB %>% filter(City == "Detroit") %>% select(Longitude) %>% as.numeric(),       
-                       ifelse(is.na(destLon) & Team == "Memphis Grizzlies", citiesB %>% filter(City == "Memphis") %>% select(Longitude) %>% as.numeric(),       
-                       ifelse(is.na(destLon) & Team == "Cleveland Cavaliers", citiesB %>% filter(City == "Cleveland") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Chicago Bulls", citiesB %>% filter(City == "Chicago") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Orlando Magic", citiesB %>% filter(City == "Orlando") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Washington Wizards", citiesB %>% filter(City == "Washington D.C.") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Indiana Pacers", citiesB %>% filter(City == "Indiana") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "San Antonio Spurs", citiesB %>% filter(City == "San Antonio") %>% select(Longitude) %>% as.numeric(),
-                       ifelse(is.na(destLon) & Team == "Toronto Raptors", citiesB %>% filter(City == "Toronto") %>% select(Longitude) %>% as.numeric(), 
-                       ifelse(is.na(destLon) & Team == "Brooklyn Nets", citiesB %>% filter(City == "New York") %>% select(Longitude) %>% as.numeric(),       
+      mutate(destLon = ifelse(is.na(destLon) & Team == "Atlanta Hawks", acities %>% filter(City == "Atlanta") %>% select(Longitude) %>% as.numeric(), 
+                       ifelse(is.na(destLon) & Team == "Boston Celtics", acities %>% filter(City == "Boston") %>% select(Longitude) %>% as.numeric(),      
+                       ifelse(is.na(destLon) & Team == "New Orleans Pelicans", acities %>% filter(City == "New Orleans") %>% select(Longitude) %>% as.numeric(), 
+                       ifelse(is.na(destLon) & Team == "Houston Rockets", acities %>% filter(City == "Houston") %>% select(Longitude) %>% as.numeric(), 
+                       ifelse(is.na(destLon) & Team == "Oklahoma City Thunder", acities %>% filter(City == "Oklahoma") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "New York Knicks", acities %>% filter(City == "New York") %>% select(Longitude) %>% as.numeric(),  
+                       ifelse(is.na(destLon) & Team == "Charlotte Hornets", acities %>% filter(City == "Charlotte") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Miami Heat", acities %>% filter(City == "Miami") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Phoenix Suns", acities %>% filter(City == "Phoenix") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Utah Jazz", acities %>% filter(City == "Utah") %>% select(Longitude) %>% as.numeric(),  
+                       ifelse(is.na(destLon) & Team == "Los Angeles Lakers", acities %>% filter(City == "Los Angeles") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Los Angeles Clippers", acities %>% filter(City == "Los Angeles") %>% select(Longitude) %>% as.numeric(),       
+                       ifelse(is.na(destLon) & Team == "Dallas Mavericks", acities %>% filter(City == "Dallas") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Milwaukee Bucks", acities %>% filter(City == "Milwaukee") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Philadelphia 76ers", acities %>% filter(City == "Philadelphia") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Minnesota Timberwolves", acities %>% filter(City == "Minnesota") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Golden State Warriors", acities %>% filter(City == "San Francisco") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Portland Trail Blazers", acities %>% filter(City == "Portland") %>% select(Longitude) %>% as.numeric(),       
+                       ifelse(is.na(destLon) & Team == "Denver Nuggets", acities %>% filter(City == "Denver") %>% select(Longitude) %>% as.numeric(),       
+                       ifelse(is.na(destLon) & Team == "Sacramento Kings", acities %>% filter(City == "Sacramento") %>% select(Longitude) %>% as.numeric(),       
+                       ifelse(is.na(destLon) & Team == "Detroit Pistons", acities %>% filter(City == "Detroit") %>% select(Longitude) %>% as.numeric(),       
+                       ifelse(is.na(destLon) & Team == "Memphis Grizzlies", acities %>% filter(City == "Memphis") %>% select(Longitude) %>% as.numeric(),       
+                       ifelse(is.na(destLon) & Team == "Cleveland Cavaliers", acities %>% filter(City == "Cleveland") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Chicago Bulls", acities %>% filter(City == "Chicago") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Orlando Magic", acities %>% filter(City == "Orlando") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Washington Wizards", acities %>% filter(City == "Washington D.C.") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Indiana Pacers", acities %>% filter(City == "Indiana") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "San Antonio Spurs", acities %>% filter(City == "San Antonio") %>% select(Longitude) %>% as.numeric(),
+                       ifelse(is.na(destLon) & Team == "Toronto Raptors", acities %>% filter(City == "Toronto") %>% select(Longitude) %>% as.numeric(), 
+                       ifelse(is.na(destLon) & Team == "Brooklyn Nets", acities %>% filter(City == "New York") %>% select(Longitude) %>% as.numeric(),       
                        destLon))))))))))))))))))))))))))))))) %>%
       
       
-      mutate(Route = ifelse(is.na(lag(City)) & Team == "Atlanta Hawks", paste(citiesB %>% filter(City == "Atlanta") %>% select(City), City, sep = " - "), 
-                     ifelse(is.na(lag(City)) & Team == "Boston Celtics", paste(citiesB %>% filter(City == "Boston") %>% select(City), City, sep = " - "),      
-                     ifelse(is.na(lag(City)) & Team == "New Orleans Pelicans", paste(citiesB %>% filter(City == "New Orleans") %>% select(City), City, sep = " - "), 
-                     ifelse(is.na(lag(City)) & Team == "Houston Rockets", paste(citiesB %>% filter(City == "Houston") %>% select(City), City, sep = " - "), 
-                     ifelse(is.na(lag(City)) & Team == "Oklahoma City Thunder", paste(citiesB %>% filter(City == "Oklahoma") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "New York Knicks", paste(citiesB %>% filter(City == "New York") %>% select(City), City, sep = " - "),  
-                     ifelse(is.na(lag(City)) & Team == "Charlotte Hornets", paste(citiesB %>% filter(City == "Charlotte") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Miami Heat", paste(citiesB %>% filter(City == "Miami") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Phoenix Suns", paste(citiesB %>% filter(City == "Phoenix") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Utah Jazz", paste(citiesB %>% filter(City == "Utah") %>% select(City), City, sep = " - "),  
-                     ifelse(is.na(lag(City)) & Team == "Los Angeles Lakers", paste(citiesB %>% filter(City == "Los Angeles") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Los Angeles Clippers", paste(citiesB %>% filter(City == "Los Angeles") %>% select(City), City, sep = " - "),       
-                     ifelse(is.na(lag(City)) & Team == "Dallas Mavericks", paste(citiesB %>% filter(City == "Dallas") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Milwaukee Bucks", paste(citiesB %>% filter(City == "Milwaukee") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Philadelphia 76ers", paste(citiesB %>% filter(City == "Philadelphia") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Minnesota Timberwolves", paste(citiesB %>% filter(City == "Minnesota") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Golden State Warriors", paste(citiesB %>% filter(City == "San Francisco") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Portland Trail Blazers", paste(citiesB %>% filter(City == "") %>% select(City), City, sep = " - "),       
-                     ifelse(is.na(lag(City)) & Team == "Denver Nuggets", paste(citiesB %>% filter(City == "Portland") %>% select(City), City, sep = " - "),       
-                     ifelse(is.na(lag(City)) & Team == "Sacramento Kings", paste(citiesB %>% filter(City == "Sacramento") %>% select(City), City, sep = " - "),       
-                     ifelse(is.na(lag(City)) & Team == "Detroit Pistons", paste(citiesB %>% filter(City == "Detroit") %>% select(City), City, sep = " - "),       
-                     ifelse(is.na(lag(City)) & Team == "Memphis Grizzlies", paste(citiesB %>% filter(City == "Memphis") %>% select(City), City, sep = " - "),       
-                     ifelse(is.na(lag(City)) & Team == "Cleveland Cavaliers", paste(citiesB %>% filter(City == "Cleveland") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Chicago Bulls", paste(citiesB %>% filter(City == "Chicago") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Orlando Magic", paste(citiesB %>% filter(City == "Orlando") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Washington Wizards", paste(citiesB %>% filter(City == "Washington D.C.") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Indiana Pacers", paste(citiesB %>% filter(City == "Indiana") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "San Antonio Spurs", paste(citiesB %>% filter(City == "San Antonio") %>% select(City), City, sep = " - "),
-                     ifelse(is.na(lag(City)) & Team == "Toronto Raptors", paste(citiesB %>% filter(City == "Toronto") %>% select(City), City, sep = " - "), 
-                     ifelse(is.na(lag(City)) & Team == "Brooklyn Nets", paste(citiesB %>% filter(City == "Brooklyn") %>% select(City), City, sep = " - "),       
+      mutate(Route = ifelse(is.na(lag(City)) & Team == "Atlanta Hawks", paste(acities %>% filter(City == "Atlanta") %>% select(City), City, sep = " - "), 
+                     ifelse(is.na(lag(City)) & Team == "Boston Celtics", paste(acities %>% filter(City == "Boston") %>% select(City), City, sep = " - "),      
+                     ifelse(is.na(lag(City)) & Team == "New Orleans Pelicans", paste(acities %>% filter(City == "New Orleans") %>% select(City), City, sep = " - "), 
+                     ifelse(is.na(lag(City)) & Team == "Houston Rockets", paste(acities %>% filter(City == "Houston") %>% select(City), City, sep = " - "), 
+                     ifelse(is.na(lag(City)) & Team == "Oklahoma City Thunder", paste(acities %>% filter(City == "Oklahoma") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "New York Knicks", paste(acities %>% filter(City == "New York") %>% select(City), City, sep = " - "),  
+                     ifelse(is.na(lag(City)) & Team == "Charlotte Hornets", paste(acities %>% filter(City == "Charlotte") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Miami Heat", paste(acities %>% filter(City == "Miami") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Phoenix Suns", paste(acities %>% filter(City == "Phoenix") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Utah Jazz", paste(acities %>% filter(City == "Utah") %>% select(City), City, sep = " - "),  
+                     ifelse(is.na(lag(City)) & Team == "Los Angeles Lakers", paste(acities %>% filter(City == "Los Angeles") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Los Angeles Clippers", paste(acities %>% filter(City == "Los Angeles") %>% select(City), City, sep = " - "),       
+                     ifelse(is.na(lag(City)) & Team == "Dallas Mavericks", paste(acities %>% filter(City == "Dallas") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Milwaukee Bucks", paste(acities %>% filter(City == "Milwaukee") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Philadelphia 76ers", paste(acities %>% filter(City == "Philadelphia") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Minnesota Timberwolves", paste(acities %>% filter(City == "Minnesota") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Golden State Warriors", paste(acities %>% filter(City == "San Francisco") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Portland Trail Blazers", paste(acities %>% filter(City == "") %>% select(City), City, sep = " - "),       
+                     ifelse(is.na(lag(City)) & Team == "Denver Nuggets", paste(acities %>% filter(City == "Portland") %>% select(City), City, sep = " - "),       
+                     ifelse(is.na(lag(City)) & Team == "Sacramento Kings", paste(acities %>% filter(City == "Sacramento") %>% select(City), City, sep = " - "),       
+                     ifelse(is.na(lag(City)) & Team == "Detroit Pistons", paste(acities %>% filter(City == "Detroit") %>% select(City), City, sep = " - "),       
+                     ifelse(is.na(lag(City)) & Team == "Memphis Grizzlies", paste(acities %>% filter(City == "Memphis") %>% select(City), City, sep = " - "),       
+                     ifelse(is.na(lag(City)) & Team == "Cleveland Cavaliers", paste(acities %>% filter(City == "Cleveland") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Chicago Bulls", paste(acities %>% filter(City == "Chicago") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Orlando Magic", paste(acities %>% filter(City == "Orlando") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Washington Wizards", paste(acities %>% filter(City == "Washington D.C.") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Indiana Pacers", paste(acities %>% filter(City == "Indiana") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "San Antonio Spurs", paste(acities %>% filter(City == "San Antonio") %>% select(City), City, sep = " - "),
+                     ifelse(is.na(lag(City)) & Team == "Toronto Raptors", paste(acities %>% filter(City == "Toronto") %>% select(City), City, sep = " - "), 
+                     ifelse(is.na(lag(City)) & Team == "Brooklyn Nets", paste(acities %>% filter(City == "Brooklyn") %>% select(City), City, sep = " - "),       
                      paste(lag(City), City, sep = " - ")))))))))))))))))))))))))))))))) %>%
       
       mutate(Latitude = as.numeric(Latitude), Longitude = as.numeric(Longitude), destLat = as.numeric(destLat), destLon = as.numeric(destLon)) %>%
@@ -2131,8 +2261,9 @@ server <- function(input, output, session) {
   output$team_table_density <- DT::renderDataTable({
   
     num <- sche2() %>%
-      filter(Season == input$season_filter) %>%
+   
       filter(Team == input$team_filter) %>%
+      
       select(Team, Density) %>%
       na.omit() %>%
       group_by(Density) %>%
@@ -2144,7 +2275,6 @@ server <- function(input, output, session) {
     
     
     num2 <- sche2() %>%
-      filter(Season == input$season_filter) %>%
       filter(Team == input$team_filter) %>%
       select(Opponent, `Opp Density`) %>%
       na.omit() %>%
@@ -2205,9 +2335,10 @@ server <- function(input, output, session) {
   output$date <- renderUI({
     
     req(input$team_filter)
-    req(input$season_filter)
     
-    choices <- cities() %>% filter(Team == input$team_filter) %>% filter(Season == input$season_filter) %>% select(Date) %>% 
+    choices <- cities() %>% 
+      filter(Team == input$team_filter) %>% 
+      select(Date) %>% 
       arrange(Date) %>%
       mutate(Date = as.character(Date)) %>% unique()
     
@@ -2228,14 +2359,15 @@ server <- function(input, output, session) {
     
     req(input$date_filter)
     req(input$team_filter)
-    req(input$season_filter)
     
-    acitiesc <- cities() %>% filter(Team == input$team_filter) %>% filter(Season == input$season_filter)
+    acitiesc <- cities() %>% filter(Team == input$team_filter)
     
-    acitiesd <- cities() %>% filter(Team == input$team_filter) %>% filter(Season == input$season_filter) %>% filter(Date == input$date_filter)
+    acitiesd <- cities() %>% 
+      filter(Team == input$team_filter) %>% 
+      filter(Date == input$date_filter)
     
     #create basemap
-    maps::map("world", regions=c("usa"), fill=T, col="grey8", bg="grey15", ylim=c(21.0,50.0), xlim=c(-130.0,-65.0))
+    maps::map("world", regions=c("usa"), fill=T, col="#17202a", bg="transparent", ylim=c(21.0,50.0), xlim=c(-130.0,-65.0))
     points(acities$Longitude, acities$Latitude, pch=7, cex=1, col="chocolate1")
     
     
@@ -2247,78 +2379,395 @@ server <- function(input, output, session) {
     }
     
     inter2 <- geosphere::gcIntermediate(c(acitiesd$destLon, acitiesd$destLat), c(acitiesd$Longitude, acitiesd$Latitude), n=200)
-    lines(inter2, col="springgreen", lwd = 5)
+    lines(inter2, col="#ccff00", lwd = 5)
     
     
   })
   
-  #game card table
-  output$game_table <- DT::renderDataTable({
+  #code for game card dashboard
+  
+  city <- reactive({
     
-    req(input$date_filter)
-    req(input$team_filter)
-    req(input$season_filter)
+    validate(
+      need(input$team_filter, ""),
+      need(input$date_filter, "")
+    )
     
-    city <- cities() %>% filter(Team == input$team_filter) %>% filter(Season == input$season_filter) %>%
+    
+    cities() %>% 
       
-      select(Date, Location, Arena, Team, Opponent, City, Outcome = `W/L`, Points = Team_pts, `Opp Points` = Opp_pts, Density, `Opp Density`, Index, `Opp Index`, movIndex, `Opp movIndex`, Route, Distance) %>%
+      full_join(Logos, by = c("Team", "Opponent", "Date")) %>% 
       
+      filter(Team == input$team_filter) %>% 
       
-      formattable(list(
-         
-          movIndex = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(is.na(x), "transparent", "white"))),
-         `Opp movIndex` = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(is.na(x), "transparent", "white"))),
-         Route = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "No Travel", "red", "white"))),
-          
-          Outcome = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(is.na(x), "transparent",
-                                                                                                 ifelse(x == "W", "springgreen", "red")))),
-          
-          Location = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "Home", "lightblue", "salmon"))),
-          
-          Density = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "3IN4-B2B", "#ff0000", 
-                                                                                                 ifelse(x == "3IN4", "#ff3300", 
-                                                                                                        ifelse(x == "B2B", "#cc6600",
-                                                                                                               ifelse(x == "1 Day Rest", "#cc9900",
-                                                                                                                      ifelse(x == "2 Days Rest", "#cccc00",
-                                                                                                                             ifelse(x == "3+ Days Rest", "#ccff00", "transparent")))))))), 
-          
-          
-          `Opp Density` = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "3IN4-B2B", "#ff0000", 
-                                                                                                       ifelse(x == "3IN4", "#ff3300", 
-                                                                                                              ifelse(x == "B2B", "#cc6600",
-                                                                                                                     ifelse(x == "1 Day Rest", "#cc9900",
-                                                                                                                            ifelse(x == "2 Days Rest", "#cccc00",
-                                                                                                                                   ifelse(x == "3+ Days Rest", "#ccff00", "transparent")))))))),
-          
-          `Points` = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(is.na(x), "transparent", "lightgray"))),
-          
-          `Opp Points` = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(is.na(x), "transparent", "lightgray")))
-        
-      )) %>%
+      select(Team_Logo, Opp_Logo, Date, Location, Arena, Team, Opponent, City, Outcome = `W/L`, Points = Team_pts, `Opp Points` = Opp_pts, Density, `Opp Density`, Index, `Opp Index`, movIndex, `Opp movIndex`, Route, Distance) %>%
       
       filter(Date == input$date_filter) %>%
-      select(-Date)
-    
-    as.datatable(city,
-                 rownames = FALSE,
-                 extensions = 'Responsive',
-                 options = list(dom = 't', 
-                                pageLength = 90, 
-                                bSort=FALSE,
-                                initComplete = JS(
-                                  "function(settings, json) {",
-                                  "$(this.api().table().header()).css({'background-color': '#17202a', 'color': '#fff'});",
-                                  "}"))) %>%
       
-      formatStyle('Team', fontWeight = 'bold') %>%
-      formatStyle('Points', fontWeight = 'bold') %>%
-      formatStyle('Density', fontWeight = 'bold') %>%
-      formatStyle('Index', fontWeight = 'bold') %>%
-      formatStyle('movIndex', fontWeight = 'bold') %>%
-      formatStyle('Opp movIndex', fontWeight = 'bold') %>%
-      formatStyle('Outcome', fontWeight = 'bold') 
-                 
+      mutate(Points = ifelse(is.na(Points), "", paste(Points, "pts", sep = " ")), `Opp Points` = ifelse(is.na(`Opp Points`), "", paste(`Opp Points`, "pts", sep = " ")))
     
+  })
+  
+  #code for individual items
+  
+  
+  #team logo
+  output$team_logo <- renderUI({
+    
+    HTML(city()$Team_Logo)
+    
+  })
+  
+  #team logo
+  output$opponent_logo <- renderUI({
+    
+    HTML(city()$Opp_Logo)
+    
+  })
+  
+  #team
+  output$team <- renderUI({
+    
+    tags$h1(city()$Team)
+    
+  })
+  
+  #team
+  output$opponent <- renderUI({
+    
+    tags$h1(city()$Opponent)
+    
+  })
+  
+  #Team location
+  output$location_team <- renderUI({
+    
+    if(city()$Location == "Home"){
+      
+      a <- paste("<span style=color:lightblue>", city()$Location, "</span>")
+      
+      
+    }else{
+      
+      a <- paste("<span style=color:salmon>", city()$Location, "</span>")
+      
+    }
+    
+    tags$h4(HTML(a))
+    
+  })
+  
+  #Opponent location
+  output$location_opponent <- renderUI({
+    
+    if(city()$Location == "Home"){
+      
+      a <- paste("<span style=color:salmon>", "Away", "</span>")
+      
+      
+    }else{
+      
+      a <- paste("<span style=color:lightblue>", "Home", "</span>")
+      
+    }
+    
+    tags$h4(HTML(a))
+    
+  })
+  
+  #Team Points
+  output$team_points <- renderUI({
+    
+    tags$h3(city()$Points)
+    
+  })
+  
+  #Team Points
+  output$opponent_points <- renderUI({
+    
+    tags$h3(city()$`Opp Points`)
+    
+  })
+  
+  #Team density
+  output$density_team <- renderUI({
+    
+    if(city()$Density == "3IN4-B2B"){
+      
+      a <- paste("<span style=color:#ff0000>", city()$Density, "</span>")
+      
+    }else if(city()$Density == "3IN4"){
+      
+      a <- paste("<span style=color:#ff3300>", city()$Density, "</span>")
+      
+    }else if(city()$Density == "B2B"){
+    
+    a <- paste("<span style=color:#cc6600>", city()$Density, "</span>")
+    
+    }else if(city()$Density == "1 Day Rest"){
+      
+      a <- paste("<span style=color:#cc9900>", city()$Density, "</span>")
+    
+    }else if(city()$Density == "2 Days Rest"){
+      
+      a <- paste("<span style=color:#cccc00>", city()$Density, "</span>")
+      
+    }else if(city()$Density == "3+ Days Rest"){
+      
+      a <- paste("<span style=color:#ccff00>", city()$Density, "</span>")
+    
+    }else{
+      
+      a <- paste("<span style=color:grey>", "Density Unknown", "</span>")
+      
+    }
+    
+    tags$h3(HTML(a))
+    
+    
+  })
+  
+  #opponent density
+  output$density_opponent <- renderUI({
+    
+    if(city()$`Opp Density` == "3IN4-B2B"){
+      
+      a <- paste("<span style=color:#ff0000>", city()$`Opp Density`, "</span>")
+      
+    }else if(city()$`Opp Density` == "3IN4"){
+      
+      a <- paste("<span style=color:#ff3300>", city()$`Opp Density`, "</span>")
+      
+    }else if(city()$`Opp Density` == "B2B"){
+      
+      a <- paste("<span style=color:#cc6600>", city()$`Opp Density`, "</span>")
+      
+    }else if(city()$`Opp Density` == "1 Day Rest"){
+      
+      a <- paste("<span style=color:#cc9900>", city()$`Opp Density`, "</span>")
+      
+    }else if(city()$`Opp Density` == "2 Days Rest"){
+      
+      a <- paste("<span style=color:#cccc00>", city()$`Opp Density`, "</span>")
+      
+    }else if(city()$`Opp Density` == "3+ Days Rest"){
+      
+      a <- paste("<span style=color:#ccff00>", city()$`Opp Density`, "</span>")
+      
+    }else{
+      
+      a <- paste("<span style=color:grey>", "Density Unknown", "</span>")
+      
+    }
+    
+    tags$h3(HTML(a))
+    
+    
+  })
+  
+  
+  #Team Index
+  output$team_index <- renderUI({
+    
+    if(city()$Index > city()$`Opp Index` ){
+      
+      a <- paste(icon("circle"), "<span style=color:white>", city()$Index, "</span>")
+      
+    }else if(city()$Index < city()$`Opp Index` ){
+      
+      a <- paste("<span style=color:white>", city()$Index, "</span>")
+      
+    }else{
+      
+      a <- paste("<span style=color:white>", city()$Index, "</span>")
+    }
+    
+    tags$h3(HTML(a))
+    
+  })
+  
+  #opponent Index
+  output$opponent_index <- renderUI({
+    
+    if(city()$Index < city()$`Opp Index` ){
+      
+      a <- paste(icon("circle"), "<span style=color:white>", city()$`Opp Index`, "</span>")
+      
+    }else if(city()$Index > city()$`Opp Index` ){
+      
+      a <- paste("<span style=color:white>", city()$`Opp Index`, "</span>")
+      
+    }else{
+      
+      a <- paste("<span style=color:white>", city()$`Opp Index`, "</span>")
+    }
+    
+    tags$h3(HTML(a))
+    
+  })
+  
+  
+  #Team movIndex
+  output$team_movindex <- renderUI({
+    
+    if(city()$movIndex > city()$`Opp movIndex` ){
+      
+      a <- paste(icon("circle"), "<span style=color:white; font-size:16px>", city()$movIndex, "</span>")
+      
+    }else if(city()$movIndex < city()$`Opp movIndex` ){
+      
+      a <- paste("<span style=color:white; font-size:16px>", city()$movIndex, "</span>")
+      
+   
+    }else{
+      
+      a <- paste("<span style=color:grey; font-size:8px>", "Not enough games for moving index.", "</span>")
+      
+    }
+    
+    HTML(a)
+    
+  })
+  
+  #Opp  movIndex
+  output$opponent_movindex <- renderUI({
+    
+    if(city()$movIndex < city()$`Opp movIndex` ){
+      
+      a <- paste(icon("circle"), "<span style=color:white; font-size:16px>", city()$`Opp movIndex`, "</span>")
+      
+    }else if(city()$movIndex > city()$`Opp movIndex` ){
+      
+      a <- paste("<span style=color:white; font-size:16px>", city()$`Opp movIndex`, "</span>")
+      
+      
+    }else{
+      
+      a <- paste("<span style=color:grey; font-size:8px>", "Not enough games for moving index.", "</span>")
+      
+    }
+    
+    HTML(a)
+    
+  })
+  
+  #text for index
+  output$text_index1 <- renderUI({
+    
+    tags$h5("Game Index:")
+    
+  })
+  
+  #text for index
+  output$text_index2 <- renderUI({
+    
+    tags$h5("Game Index:")
+    
+  })
+  
+  #text for index
+  output$text_movindex1 <- renderUI({
+    
+    tags$h5(paste(input$rolling, "Days Moving Index:", sep = " "))
+    
+  })
+  
+  #text for index
+  output$text_movindex2 <- renderUI({
+    
+    tags$h5(paste(input$rolling, "Days Moving Index:", sep = " "))
+    
+  })
+  
+  #winning label logic
+  output$team_label <- renderUI({
+    
+    if(city()$Outcome == "W"){
+      
+      a <- paste("<span style= background-color:seagreen; font-color:white>", " Winner ", "</span>")
+      
+      
+    }else{
+      
+     a <- tags$br()
+      
+    }
+    
+    HTML(a)
+    
+    
+  })
+  
+  #winning label logic
+  output$opponent_label <- renderUI({
+    
+    if(city()$Outcome == "W"){
+      
+      a <- tags$br()
+      
+      
+    }else{
+      
+      a <- paste("<span style= background-color:seagreen; font-color:white>", " Winner ", "</span>")
+      
+      
+    }
+    
+    HTML(a)
+    
+    
+  })
+  
+  #city where game is played at
+  output$city <- renderUI({
+    
+    tags$h1(city()$City)
+    
+  })
+  
+  #arena where game is played at
+  output$arena <- renderUI({
+    
+    tags$h5(city()$Arena)
+    
+  })
+  
+  #route where game is played at
+  output$route <- renderUI({
+    
+    if(city()$Route == "No Travel"){
+      
+      a <- paste("<span style= background-color:darkred; font-color:white>", " No Pre-Game Travel ", "</span>")
+      
+      
+    }else{
+      
+      a <- paste(icon("plane-departure"), "<br>", "<span style=font-color:white>", city()$Route, "</span>", sep = " ")
+      
+      
+    }
+    
+    HTML(a)
+    
+    
+  })
+  
+  #distance travelled
+  output$distance <- renderUI({
+    
+    if(city()$Route == "No Travel"){
+      
+      a <- paste("<span style= font-color:grey>", "-", "</span>")
+      
+      
+    }else{
+      
+      a <- city()$Distance
+      
+      
+    }
+    
+    HTML(a)
     
   })
   
@@ -2328,7 +2777,6 @@ server <- function(input, output, session) {
     
     a <- sche2() %>% 
     
-    filter(Season == input$season_filter) %>%  
       
     filter(Team == input$team_filter) %>%
       
@@ -2405,7 +2853,7 @@ server <- function(input, output, session) {
     
     #comparing rolling stress between local and opp teams
     aa <- sche2() %>% 
-      filter(Season == input$season_filter) %>%
+     
       select(`W/L`, Team, Opponent, Date, `Moving Index Density` = `movIndex`, `Opponent Moving Index` = `Opp movIndex`) %>%
       gather(Metric, Value, -Team, -Opponent, -Date, -`W/L`) %>%
       na.omit() %>%
@@ -2456,7 +2904,7 @@ server <- function(input, output, session) {
   #code to look at winning and loosing by type of rest combination
   
   a <- sche2() %>% 
-    filter(Season == input$season_filter) %>%
+    
     filter(Team == input$team_filter) %>%
     select(Density, `Opp Density`, `W/L`) %>% na.omit()
   
@@ -2694,7 +3142,7 @@ server <- function(input, output, session) {
   output$H_A_table <- DT::renderDataTable({
   
   cccb <- sche2() %>% 
-    filter(Season == input$season_filter) %>%
+   
     filter(Team == input$team_filter) %>%
     select(Location, Outcome = `W/L`) %>%
     group_by(Location, Outcome) %>%
@@ -2741,7 +3189,7 @@ server <- function(input, output, session) {
     
     #table showing count of density type for all teams
     df1 <- sche2() %>%
-      filter(Season == input$season_filter) %>%
+     
       filter(Location %in% input$location_filter) %>%
       select(Team, Density) %>%
       na.omit() %>%

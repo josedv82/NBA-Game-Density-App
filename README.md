@@ -1,6 +1,11 @@
 # NBA Game Density App
 Simple app to visually explore the density (rest) of the schedule for NBA teams.
 
+## Logo
+
+<img width="150" src="https://www.dropbox.com/s/tv0z4ws9e67axyd/hexlogo.png?raw=1">
+
+
 ## Intro
 The goal of this app is to enable users manipulate different aspects related to the game density (frequency of games) in the NBA for both, 
 a selected team and its opponents over the last 3 seasons. Users can manipulate factors such as court advantage, travel stress, 

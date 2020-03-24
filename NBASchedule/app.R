@@ -7,7 +7,7 @@
 
 ###################################################
 
-#loading required libraries
+#loading required libraries####
 library(maps)
 library(shiny)
 library(shinyWidgets)
@@ -28,27 +28,30 @@ library(geosphere)
 
 #####################################################
 
-#loading data
+#loading data####
 data <- read_excel("NBA_Schedule.xlsx", sheet = "schedule")
 score <- read_excel("nba_scores.xlsx", sheet = "scores")
 
 
 #####################################################
 
-#initial cleaning data
+#initial cleaning data#####
 
 dat <- data %>%
   select(Season = SEASON, Date = DATE, Time = 3, `Away Rest` = `ROAD REST DAYS`, `Road Team` = `ROAD TEAM`, `Home Team` = `HOME TEAM`, `Home Rest` = `HOME REST DAYS`, Arena = ARENA) %>%
   mutate(Time = hms::as_hms(Time + 18000)) %>%
-  mutate_if(~'POSIXt' %in% class(.x), as.Date)
+  mutate_if(~'POSIXt' %in% class(.x), as.Date) %>% filter(Season != "2016-17")
 
 sco <- score %>% 
   select(-Time, -BX, -OT, -Notes) %>%
-  mutate_if(~'POSIXt' %in% class(.x), as.Date)
+  mutate_if(~'POSIXt' %in% class(.x), as.Date) %>% filter(Date > "2017-10-01")
 
 #sort out by team 
 
-########################################################################################################################
+#####################################################
+
+#team by team cleaning####
+
 a.a <- dat %>%
   filter(`Road Team` == "New Orleans Pelicans" | `Home Team` == "New Orleans Pelicans") %>% 
   mutate(Team = "New Orleans Pelicans") %>%
@@ -88,7 +91,7 @@ a.b <- sco %>%
 
 a <- full_join(a.a, a.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 b.a <- dat %>%
   filter(`Road Team` == "Los Angeles Lakers" | `Home Team` == "Los Angeles Lakers") %>% 
   mutate(Team = "Los Angeles Lakers") %>%
@@ -128,7 +131,7 @@ b.b <- sco %>%
 
 b <- full_join(b.a, b.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 c.a <- dat %>%
   filter(`Road Team` == "Chicago Bulls" | `Home Team` == "Chicago Bulls") %>% 
   mutate(Team = "Chicago Bulls") %>%
@@ -168,7 +171,7 @@ c.b <- sco %>%
 
 c <- full_join(c.a, c.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 d.a <- dat %>%
   filter(`Road Team` == "Cleveland Cavaliers" | `Home Team` == "Cleveland Cavaliers") %>% 
   mutate(Team = "Cleveland Cavaliers") %>%
@@ -209,7 +212,7 @@ d.b <- sco %>%
 
 d <- full_join(d.a, d.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 e.a <- dat %>%
   filter(`Road Team` == "Detroit Pistons" | `Home Team` == "Detroit Pistons") %>% 
   mutate(Team = "Detroit Pistons") %>%
@@ -250,7 +253,7 @@ e.b <- sco %>%
 
 e <- full_join(e.a, e.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 f.a <- dat %>%
   filter(`Road Team` == "Boston Celtics" | `Home Team` == "Boston Celtics") %>% 
   mutate(Team = "Boston Celtics") %>%
@@ -290,7 +293,7 @@ f.b <- sco %>%
 
 f <- full_join(f.a, f.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 g.a <- dat %>%
   filter(`Road Team` == "Minnesota Timberwolves" | `Home Team` == "Minnesota Timberwolves") %>% 
   mutate(Team = "Minnesota Timberwolves") %>%
@@ -332,7 +335,7 @@ g.b <- sco %>%
 g <- full_join(g.a, g.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 h.a <- dat %>%
   filter(`Road Team` == "Memphis Grizzlies" | `Home Team` == "Memphis Grizzlies") %>% 
   mutate(Team = "Memphis Grizzlies") %>%
@@ -373,7 +376,7 @@ h.b <- sco %>%
 h <- full_join(h.a, h.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 i.a <- dat %>%
   filter(`Road Team` == "Washington Wizards" | `Home Team` == "Washington Wizards") %>% 
   mutate(Team = "Washington Wizards") %>%
@@ -415,7 +418,7 @@ i.b <- sco %>%
 i <- full_join(i.a, i.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 j.a <- dat %>%
   filter(`Road Team` == "New York Knicks" | `Home Team` == "New York Knicks") %>% 
   mutate(Team = "New York Knicks") %>%
@@ -456,7 +459,7 @@ j.b <- sco %>%
 j <- full_join(j.a, j.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 k.a <- dat %>%
   filter(`Road Team` == "Oklahoma City Thunder" | `Home Team` == "Oklahoma City Thunder") %>% 
   mutate(Team = "Oklahoma City Thunder") %>%
@@ -497,7 +500,7 @@ k.b <- sco %>%
 
 k <- full_join(k.a, k.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 l.a <- dat %>%
   filter(`Road Team` == "Denver Nuggets" | `Home Team` == "Denver Nuggets") %>% 
   mutate(Team = "Denver Nuggets") %>%
@@ -538,7 +541,7 @@ l.b <- sco %>%
 
 l <- full_join(l.a, l.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 m.a <- dat %>%
   filter(`Road Team` == "Sacramento Kings" | `Home Team` == "Sacramento Kings") %>% 
   mutate(Team = "Sacramento Kings") %>%
@@ -580,7 +583,7 @@ m.b <- sco %>%
 m <- full_join(m.a, m.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 n.a <- dat %>%
   filter(`Road Team` == "Atlanta Hawks" | `Home Team` == "Atlanta Hawks") %>% 
   mutate(Team = "Atlanta Hawks") %>%
@@ -621,7 +624,7 @@ n.b <- sco %>%
 n <- full_join(n.a, n.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 o.a <- dat %>%
   filter(`Road Team` == "Milwaukee Bucks" | `Home Team` == "Milwaukee Bucks") %>% 
   mutate(Team = "Milwaukee Bucks") %>%
@@ -663,7 +666,7 @@ o.b <- sco %>%
 o <- full_join(o.a, o.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 p.a <- dat %>%
   filter(`Road Team` == "Los Angeles Clippers" | `Home Team` == "Los Angeles Clippers") %>% 
   mutate(Team = "Los Angeles Clippers") %>%
@@ -705,7 +708,7 @@ p.b <- sco %>%
 p <- full_join(p.a, p.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 q.a <- dat %>%
   filter(`Road Team` == "Toronto Raptors" | `Home Team` == "Toronto Raptors") %>% 
   mutate(Team = "Toronto Raptors") %>%
@@ -746,7 +749,7 @@ q.b <- sco %>%
 
 q <- full_join(q.a, q.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 r.a <- dat %>%
   filter(`Road Team` == "Dallas Mavericks" | `Home Team` == "Dallas Mavericks") %>% 
   mutate(Team = "Dallas Mavericks") %>%
@@ -786,7 +789,7 @@ r.b <- sco %>%
 
 r <- full_join(r.a, r.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 s.a <- dat %>%
   filter(`Road Team` == "Phoenix Suns" | `Home Team` == "Phoenix Suns") %>% 
   mutate(Team = "Phoenix Suns") %>%
@@ -828,7 +831,7 @@ s.b <- sco %>%
 s <- full_join(s.a, s.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 t.a <- dat %>%
   filter(`Road Team` == "Portland Trail Blazers" | `Home Team` == "Portland Trail Blazers") %>% 
   mutate(Team = "Portland Trail Blazers") %>%
@@ -869,7 +872,7 @@ t.b <- sco %>%
 
 t <- full_join(t.a, t.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 u.a <- dat %>%
   filter(`Road Team` == "Utah Jazz" | `Home Team` == "Utah Jazz") %>% 
   mutate(Team = "Utah Jazz") %>%
@@ -910,7 +913,7 @@ u.b <- sco %>%
 u <- full_join(u.a, u.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 v.a <- dat %>%
   filter(`Road Team` == "Miami Heat" | `Home Team` == "Miami Heat") %>% 
   mutate(Team = "Miami Heat") %>%
@@ -951,7 +954,7 @@ v.b <- sco %>%
 
 v <- full_join(v.a, v.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 w.a <- dat %>%
   filter(`Road Team` == "Philadelphia 76ers" | `Home Team` == "Philadelphia 76ers") %>% 
   mutate(Team = "Philadelphia 76ers") %>%
@@ -992,7 +995,7 @@ w.b <- sco %>%
 
 w <- full_join(w.a, w.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 x.a <- dat %>%
   filter(`Road Team` == "Orlando Magic" | `Home Team` == "Orlando Magic") %>% 
   mutate(Team = "Orlando Magic") %>%
@@ -1033,7 +1036,7 @@ x.b <- sco %>%
 
 x <- full_join(x.a, x.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 y.a <- dat %>%
   filter(`Road Team` == "Indiana Pacers" | `Home Team` == "Indiana Pacers") %>% 
   mutate(Team = "Indiana Pacers") %>%
@@ -1074,7 +1077,7 @@ y.b <- sco %>%
 y <- full_join(y.a, y.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 z.a <- dat %>%
   filter(`Road Team` == "Golden State Warriors" | `Home Team` == "Golden State Warriors") %>% 
   mutate(Team = "Golden State Warriors") %>%
@@ -1116,7 +1119,7 @@ z.b <- sco %>%
 z <- full_join(z.a, z.b, by = c("Team", "Date", "Opponent"))
 
 
-########################################################################################################################
+
 a.1.a.a <- dat %>%
   filter(`Road Team` == "Brooklyn Nets" | `Home Team` == "Brooklyn Nets") %>% 
   mutate(Team = "Brooklyn Nets") %>%
@@ -1156,7 +1159,7 @@ a.1.b.b <- sco %>%
 
 a.1 <- full_join(a.1.a.a, a.1.b.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 a.2.a.a <- dat %>%
   filter(`Road Team` == "Charlotte Hornets" | `Home Team` == "Charlotte Hornets") %>% 
   mutate(Team = "Charlotte Hornets") %>%
@@ -1196,7 +1199,7 @@ a.2.b.b <- sco %>%
 
 a.2 <- full_join(a.2.a.a, a.2.b.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 a.3.a.a <- dat %>%
   filter(`Road Team` == "Houston Rockets" | `Home Team` == "Houston Rockets") %>% 
   mutate(Team = "Houston Rockets") %>%
@@ -1237,7 +1240,7 @@ a.3.b.b <- sco %>%
 
 a.3 <- full_join(a.3.a.a, a.3.b.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
+
 a.4.a.a <- dat %>%
   filter(`Road Team` == "San Antonio Spurs" | `Home Team` == "San Antonio Spurs") %>% 
   mutate(Team = "San Antonio Spurs") %>%
@@ -1277,9 +1280,12 @@ a.4.b.b <- sco %>%
 
 a.4 <- full_join(a.4.a.a, a.4.b.b, by = c("Team", "Date", "Opponent"))
 
-########################################################################################################################
 
-#create master table with all data
+
+
+###################################################
+
+#create master table with all data####
 
 sche <- full_join(a,b, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
   full_join(c, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
@@ -1319,9 +1325,9 @@ sche <- full_join(a,b, by = c("Season", "Team", "Month", "Date", "Time", "Oppone
   mutate(Rest = ifelse(Rest == "3", "3+", Rest)) %>%
   arrange(Date)
 
-########################################################################################################################
+###################################################
 
-# cities table with lat and lon
+# cities table with lat and lon####
 
 #coordinates for Toronto
 toronto <- c("Toronto", 43.65, -79.38)
@@ -1393,7 +1399,8 @@ acities <- us.cities %>%
 
 
 ##################################################
-#Logos Team
+
+#Logos for table Team####
 
 df <- data.frame(val = c("Atlanta Hawks","Boston Celtics", "Brooklyn Nets", "Charlotte Hornets", "Chicago Bulls", "Cleveland Cavaliers", "Dallas Mavericks",
                          "Denver Nuggets", "Detroit Pistons", "Golden State Warriors", "Houston Rockets", "Indiana Pacers", "Los Angeles Clippers", "Los Angeles Lakers",
@@ -1433,7 +1440,9 @@ df$img = c(
   sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/utah-jazz-logo.png' width=30px><div class='jhr'>%s</div></img>", df$val[29]),
   sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/washington-wizards-logo.png' width=30px><div class='jhr'>%s</div></img>", df$val[30]))
   
-#Logos for opening dashboard
+##################################################
+
+#Logos for opening dashboard#####
 
 Logos <- sche %>% 
   select(Date, Team, Opponent) %>%
@@ -1504,16 +1513,24 @@ Logos <- sche %>%
 
 ###################################################
 
+#links social media buttons####
+url <- "https://twitter.com/intent/tweet?text=Link to the NBA game density app. @jfernandez__&url=https://josedv.shinyapps.io/NBASchedule/"
+url2 <- "https://josedv.shinyapps.io/NBASchedule/"
+
+
+###################################################
+
 #User Interface
 
 ##################################################
 
 
-
 ui <- dashboardPagePlus(
   
+#header############
   
   header = dashboardHeaderPlus(
+    
     
     #popup modal link in header
     tags$li(class = "dropdown", actionLink("welcome", label = NULL, icon = icon("info-circle"), style = 'color:#d27120'),
@@ -1524,13 +1541,15 @@ ui <- dashboardPagePlus(
     
     title = tagList(
      shiny::span(class = "logo-lg", "NBA Game Density Simulator", style = "color:#d27120"), 
-      img(src = "https://image.flaticon.com/icons/svg/2288/2288077.svg", width = "35px", height = "35px")),
+      img(src = "hexlogo.png", width = "35px", height = "35px")),
+    
     
     titleWidth = 330),
   
   
+#################################################
 
-  
+#sidebar######  
   
   #the following code crates funtionality on the left side menu, providing filtering options for users.    
   
@@ -1540,6 +1559,28 @@ ui <- dashboardPagePlus(
     
     sidebarMenu(
       
+      fluidRow(width = "100%", align = "center", #style = "padding-right:45px",
+               
+      tags$br(),
+      
+      column(width = 5),
+      
+      column(width = 2,  style = "padding-right:45px",
+      # Create url with the 'twitter-share-button' class
+      tags$a(href = url, "Tweet", class="twitter-share-button", `data-show-count` = "true"),
+      includeScript("http://platform.twitter.com/widgets.js")),
+      
+      column(width = 1),
+      
+      # Create url with the 'linkedin-share-button' class
+      column(width = 2,  style = "padding-right:45px",
+      tags$script(src = "https://platform.linkedin.com/in.js", type = "text/javascript", "lang: en_US"),
+      tags$script(type = "IN/Share",`data-url` = url2)),
+      
+      column(width = 2)
+      
+      
+      ),
       
        fluidRow(width = "100%", align = "center",
                
@@ -1577,9 +1618,14 @@ ui <- dashboardPagePlus(
     
     
   ),
+
+##################################################
+
+#body##########
   
   #the following code provides functionality for the main body of the dashboard
   body = dashboardBody(
+    
     
     #code to supress error messages when inputs are removed
     tags$style(type="text/css",
@@ -1607,7 +1653,7 @@ ui <- dashboardPagePlus(
       tabBox(title = "", id = "tab1", height = "100%", width = "100%", 
              
       tabPanel("Game Card", icon = icon("map-marked-alt"), 
-               fluidRow(column(width = 4, uiOutput("date"))),
+               fluidRow(column(width = 6, uiOutput("date"))),
                tags$hr(),
                #fluidRow(column(width = 12, withLoader(DT::dataTableOutput("game_table", width = "100%"), type = "html", loader = "loader1"))),
                fluidRow(
@@ -1618,7 +1664,7 @@ ui <- dashboardPagePlus(
                         uiOutput("team"), 
                         htmlOutput("location_team"), 
                         uiOutput("team_points"), 
-                        htmlOutput("team_label"),
+                        tags$strong(htmlOutput("team_label")),
                         tags$br(),
                         htmlOutput("density_team"), 
                         tags$br(),
@@ -1631,10 +1677,10 @@ ui <- dashboardPagePlus(
                  
                  #game details
                  column(width = 4, align = "center",
-                        htmlOutput("city"),
+                        tags$strong(htmlOutput("city")),
                         htmlOutput("arena"),
                         tags$br(),
-                        htmlOutput("route"),
+                        tags$strong(htmlOutput("route")),
                         htmlOutput("distance"),
                         withLoader(plotOutput("map_plot", width = "100%", height = "500px"), type = "html", loader = "loader1")
                         ),
@@ -1647,7 +1693,7 @@ ui <- dashboardPagePlus(
                         uiOutput("opponent"), 
                         htmlOutput("location_opponent"),
                         uiOutput("opponent_points"), 
-                        htmlOutput("opponent_label"),
+                        tags$strong(htmlOutput("opponent_label")),
                         tags$br(),
                         htmlOutput("density_opponent"), 
                         tags$br(),
@@ -1695,7 +1741,13 @@ ui <- dashboardPagePlus(
   
   
   ),#dashboardbody
-  
+
+
+##################################################
+
+#right side bar#####
+
+
   #right side dashboard to allow users configure their loads.
     rightsidebar = rightSidebar(
       
@@ -1779,7 +1831,7 @@ ui <- dashboardPagePlus(
         tags$hr(),
         
         #input for density profiles
-        tags$h4("Days since last game.", style = "color:#e48b38"),
+        tags$h4("Acummulated Games.", style = "color:#e48b38"),
         sliderTextInput("G3in4b2b","3 Games in 4 Days + B2B", choices = seq(from = 1, to = 5, by = 0.5), selected = 5, grid = T),
         sliderTextInput("G3in4","3 Games in 4 Days", choices = seq(from = 1, to = 5, by = 0.5), selected = 4.5, grid = T),
         sliderTextInput("Gb2b","Back to Back", choices = seq(from = 1, to = 5, by = 0.5), selected = 4, grid = T),
@@ -1820,12 +1872,16 @@ ui <- dashboardPagePlus(
       
       ),#right sidebar
     
-  
+###################################################
+
+#footer###########
+
+
   #this codes add a footer to the dashboard
   footer = dashboardFooter(
     
-    right_text = HTML(paste(tags$span("NBA Game Density.", style = "font-family: Arial; color: grey; font-size: 16px"), 
-                            img(src = "https://image.flaticon.com/icons/svg/2288/2288077.svg", width = "25px", height = "25px"))),
+    right_text = HTML(paste(img(src = "hexlogo.png", width = "35px", height = "35px"), 
+                            tags$span("NBA Game Density APP", style = "font-family: Arial; color: grey; font-size: 16px"))),
     
     left_text = HTML(paste(icon = icon("copyright"), tags$span("2020. Jose Fernandez", style = "font-family: Arial; color: grey; font-size: 16px"),
                             tags$span(tags$a(href= "mailto:jose.fernandezdv@gmail.com", icon("envelope"))), 
@@ -1835,10 +1891,11 @@ ui <- dashboardPagePlus(
   
 )
 
+###################################################
 
 ###################################################
 
-#Server Logic. Adds functionality to the user experience elements
+#Server Logic. 
 
 ##################################################
 
@@ -1846,22 +1903,25 @@ ui <- dashboardPagePlus(
 server <- function(input, output, session) {
   
   
-  #shinyalert after changing moving average value
+#shinyalert after changing moving average value#####
   
   observeEvent(input$rolling, ignoreInit = TRUE, {
     # Show a modal when the button is pressed
-    shinyalert("Density moving average has been updated.", type = "success")
+    shinyalert(paste("Moving Index Set to last", input$rolling, "Games.", sep = " "), type = "success")
   })
  
   
-  #intro pop up modal#### 
+  
+#####################
+  
+#intro pop up modal#### 
   observeEvent(input$welcome, {
     
     
     showModal(
       
       modalDialog(
-        HTML(paste(img(src = "https://image.flaticon.com/icons/svg/2288/2288077.svg", width = "60px", height = "60px"), tags$span("NBA Game Density App", style = "font-family: Arial; color: white; font-size:40px"))),
+        HTML(paste(img(src = "hexlogo.png", width = "80px", height = "80px"), tags$br(), tags$span("NBA Game Density App", style = "font-family: Arial; color: white; font-size:40px"))),
         tags$hr(),
         tags$br(),
         tags$h4("Game Density Simulator", style = "padding-left:2.3em; font-family: Arial; color: white"),
@@ -1893,16 +1953,20 @@ server <- function(input, output, session) {
     
   })#observeEvent 
   
+  
+#####################
+  
 ################################################   
 #create reactive dataset. This part of the code creates the final data set with reactive filters to allow users to decide how much weight
-#to give to each type of game and the rolling window for the average
-#
+#to give to each type of game and the rolling window for the average####
+
+
   
   #add months and rolling average for stress
   sche1 <- reactive({
     
     
-    sche %>% 
+     sche %>% 
       
       
       filter(Season == input$season_filter) %>%
@@ -2257,7 +2321,7 @@ server <- function(input, output, session) {
 #Team by Team tab
 ###################################################  
   
-  #mini table added to the left sidebar menu
+  #mini table added to the left sidebar menu#####
   output$team_table_density <- DT::renderDataTable({
   
     num <- sche2() %>%
@@ -2329,7 +2393,10 @@ server <- function(input, output, session) {
     
   })
   
-  #map Plot tab
+  
+  ###############################################
+  
+  #game card tab############
   
   #filter for the tab 
   output$date <- renderUI({
@@ -2338,16 +2405,16 @@ server <- function(input, output, session) {
     
     choices <- cities() %>% 
       filter(Team == input$team_filter) %>% 
-      select(Date) %>% 
+      select(Date, Team, Opponent) %>% 
       arrange(Date) %>%
       mutate(Date = as.character(Date)) %>% unique()
     
     pickerInput(
       inputId = "date_filter",
       label = "Select Date", 
-      choices = choices, 
+      choices = choices$Date, 
       #selected = , 
-      choicesOpt = list(style = rep(("color: black; background: white"),100)),
+      choicesOpt = list(style = rep(("color: black; background: deepskyblue3"),100), subtext = paste(choices$Team, choices$Opponent, sep = " vs ")),
       multiple = F)
     
   })
@@ -2755,6 +2822,7 @@ server <- function(input, output, session) {
   #distance travelled
   output$distance <- renderUI({
     
+    
     if(city()$Route == "No Travel"){
       
       a <- paste("<span style= font-color:grey>", "-", "</span>")
@@ -2769,10 +2837,14 @@ server <- function(input, output, session) {
     
     HTML(a)
     
+    
+    
   })
   
+  ###############################################
   
-  #team data table
+  
+  #schedule table tab####
   output$team_table <- DT::renderDataTable({
     
     a <- sche2() %>% 
@@ -2785,8 +2857,8 @@ server <- function(input, output, session) {
     mutate(`Density` = ifelse(is.na(`Density`), "", `Density`)) %>%
     mutate(`Opp Density` = ifelse(is.na(`Opp Density`), "", `Opp Density`)) %>%
     mutate(`Index` = ifelse(is.na(`Index`), "", `Index`)) %>%
-    mutate(`movIndex` = ifelse(is.na(`movIndex`), "", `movIndex`)) %>%
-    mutate(`Opp movIndex` = ifelse(is.na(`Opp movIndex`), "", `Opp movIndex`)) %>%
+    mutate(`movIndex` = ifelse(`movIndex` == 0, "", `movIndex`)) %>%
+    mutate(`Opp movIndex` = ifelse(`Opp movIndex` == 0, "", `Opp movIndex`)) %>%
       
     formattable(
       
@@ -2845,8 +2917,9 @@ server <- function(input, output, session) {
     
   })
   
+  ################################################
   
-#GRaphics by team
+ #plot tab#####
   
   output$team_plot <- renderPlotly({
     
@@ -2856,6 +2929,7 @@ server <- function(input, output, session) {
      
       select(`W/L`, Team, Opponent, Date, `Moving Index Density` = `movIndex`, `Opponent Moving Index` = `Opp movIndex`) %>%
       gather(Metric, Value, -Team, -Opponent, -Date, -`W/L`) %>%
+      filter(Value > 0) %>%
       na.omit() %>%
       filter(Team == input$team_filter) %>%
       mutate(Teams = ifelse(Metric == "movIndex", paste(Team, "vs", Opponent, sep = " "), paste(Opponent, "vs", Team, sep = " ")))
@@ -2897,7 +2971,10 @@ server <- function(input, output, session) {
     
   })
   
-# comparison of wins by game time
+  
+  ################################################
+  
+# comparison of wins by game time tab###########
   
   output$w_l_table <- DT::renderDataTable({
   
@@ -3137,7 +3214,9 @@ server <- function(input, output, session) {
   
   })
   
-  # comparison of wins by Location
+  ################################################
+  
+  # comparison of wins by Location#######
   
   output$H_A_table <- DT::renderDataTable({
   
@@ -3177,11 +3256,19 @@ server <- function(input, output, session) {
   
   })
   
+  
+  
+  
+  #################################################
+  
   #################################################
   
   #all teams tab
   
   #################################################
+  
+  
+  #density table tab#######
   
   output$all_teams <- DT::renderDataTable({
     
@@ -3233,7 +3320,9 @@ server <- function(input, output, session) {
     
   })
 
-    
+  ################################################
+  
+  
 }
 
 

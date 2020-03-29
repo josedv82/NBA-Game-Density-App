@@ -24,6 +24,7 @@ library(shinyBS)
 library(shinyalert)
 library(shinycustomloader)
 library(geosphere)
+library(waiter)
 
 
 #####################################################
@@ -1524,7 +1525,6 @@ url2 <- "https://josedv.shinyapps.io/NBASchedule/"
 
 ##################################################
 
-
 ui <- dashboardPagePlus(
   
 #header############
@@ -1612,6 +1612,7 @@ ui <- dashboardPagePlus(
           
           ),
       
+      #all teams tab
       menuItem("All Teams", tabName = "allteams", icon = icon("th"), startExpanded = F)
       
     )#sidebar menu
@@ -1626,6 +1627,7 @@ ui <- dashboardPagePlus(
   #the following code provides functionality for the main body of the dashboard
   body = dashboardBody(
     
+    use_waiter(), #nedded to run the waiter upon loading 
     
     #code to supress error messages when inputs are removed
     tags$style(type="text/css",
@@ -1642,6 +1644,7 @@ ui <- dashboardPagePlus(
     #custom theme for the app
     shinyDashboardThemes(theme = "grey_dark"),
     
+    
     #initializes shiny alert for modal and popups
     useShinyalert(),
     
@@ -1655,11 +1658,11 @@ ui <- dashboardPagePlus(
       tabPanel("Game Card", icon = icon("map-marked-alt"), 
                fluidRow(column(width = 6, uiOutput("date"))),
                tags$hr(),
-               #fluidRow(column(width = 12, withLoader(DT::dataTableOutput("game_table", width = "100%"), type = "html", loader = "loader1"))),
+               
                fluidRow(
                  
                  #teamDash
-                 column(width = 4, align="center", 
+                 column(width = 4, align="center",
                         htmlOutput("team_logo"),
                         uiOutput("team"), 
                         htmlOutput("location_team"), 
@@ -1736,10 +1739,20 @@ ui <- dashboardPagePlus(
   )#tabitem
   
  
-    )#tabitems
+    ),#tabitems
   
   
+################################################
+
+#code for page loader from waiter####
+  show_waiter_on_load(
+    color = "white",
+    div(style = "color:white;",
+        tags$img(src="waiter.gif", width="auto", height = "auto")
+    )
+  )
   
+
   ),#dashboardbody
 
 
@@ -1880,7 +1893,7 @@ ui <- dashboardPagePlus(
   #this codes add a footer to the dashboard
   footer = dashboardFooter(
     
-    right_text = HTML(paste(img(src = "hexlogo.png", width = "35px", height = "35px"), 
+    right_text = HTML(paste(img(src = "hexlogo.gif", width = "35px", height = "35px"), 
                             tags$span("NBA Game Density APP", style = "font-family: Arial; color: grey; font-size: 16px"))),
     
     left_text = HTML(paste(icon = icon("copyright"), tags$span("2020. Jose Fernandez", style = "font-family: Arial; color: grey; font-size: 16px"),
@@ -2495,14 +2508,14 @@ server <- function(input, output, session) {
   #team
   output$team <- renderUI({
     
-    tags$h1(city()$Team)
+    tags$h1(city()$Team, style = "color:white")
     
   })
   
   #team
   output$opponent <- renderUI({
     
-    tags$h1(city()$Opponent)
+    tags$h1(city()$Opponent, style = "color:white")
     
   })
   
@@ -2638,7 +2651,7 @@ server <- function(input, output, session) {
     
     if(city()$Index > city()$`Opp Index` ){
       
-      a <- paste(icon("circle"), "<span style=color:white>", city()$Index, "</span>")
+      a <- paste(icon("sort-up"), "<span style=color:white>", city()$Index, "</span>")
       
     }else if(city()$Index < city()$`Opp Index` ){
       
@@ -2658,7 +2671,7 @@ server <- function(input, output, session) {
     
     if(city()$Index < city()$`Opp Index` ){
       
-      a <- paste(icon("circle"), "<span style=color:white>", city()$`Opp Index`, "</span>")
+      a <- paste(icon("sort-up"), "<span style=color:white>", city()$`Opp Index`, "</span>")
       
     }else if(city()$Index > city()$`Opp Index` ){
       
@@ -2679,7 +2692,7 @@ server <- function(input, output, session) {
     
     if(city()$movIndex > city()$`Opp movIndex` ){
       
-      a <- paste(icon("circle"), "<span style=color:white; font-size:16px>", city()$movIndex, "</span>")
+      a <- paste(icon("sort-up"), "<span style=color:white; font-size:16px>", city()$movIndex, "</span>")
       
     }else if(city()$movIndex < city()$`Opp movIndex` ){
       
@@ -2701,7 +2714,7 @@ server <- function(input, output, session) {
     
     if(city()$movIndex < city()$`Opp movIndex` ){
       
-      a <- paste(icon("circle"), "<span style=color:white; font-size:16px>", city()$`Opp movIndex`, "</span>")
+      a <- paste(icon("sort-up"), "<span style=color:white; font-size:16px>", city()$`Opp movIndex`, "</span>")
       
     }else if(city()$movIndex > city()$`Opp movIndex` ){
       
@@ -2788,19 +2801,45 @@ server <- function(input, output, session) {
   #city where game is played at
   output$city <- renderUI({
     
-    tags$h1(city()$City)
+    req(input$team_filter)
+    req(input$season_filter)
+    
+    if(is.na(city()$City)){
+      
+      p(" ")
+      
+    }else{
+    
+    tags$h1(city()$City, style = "color:white")
+      
+    }
     
   })
   
   #arena where game is played at
   output$arena <- renderUI({
     
+    req(input$team_filter)
+    req(input$season_filter)
+    
+    if(is.na(city()$Arena)){
+      
+      p(" ")
+      
+    }else{
+    
     tags$h5(city()$Arena)
+      
+    }
     
   })
   
   #route where game is played at
   output$route <- renderUI({
+    
+    req(input$team_filter)
+    req(input$season_filter)
+    
     
     if(city()$Route == "No Travel"){
       
@@ -2821,6 +2860,10 @@ server <- function(input, output, session) {
   
   #distance travelled
   output$distance <- renderUI({
+    
+    req(input$team_filter)
+    req(input$season_filter)
+    
     
     
     if(city()$Route == "No Travel"){
@@ -2859,13 +2902,13 @@ server <- function(input, output, session) {
     mutate(`Index` = ifelse(is.na(`Index`), "", `Index`)) %>%
     mutate(`movIndex` = ifelse(`movIndex` == 0, "", `movIndex`)) %>%
     mutate(`Opp movIndex` = ifelse(`Opp movIndex` == 0, "", `Opp movIndex`)) %>%
-      
     formattable(
       
       list(
       `movIndex` = color_tile("springgreen", "red"),
       `Opp movIndex` = color_tile("springgreen", "red"),
       `Index` = color_text("springgreen", "red"),
+    
       
       Outcome = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(is.na(x), "transparent",
                                                                    ifelse(x == "W", "springgreen", "red")))),
@@ -2893,6 +2936,7 @@ server <- function(input, output, session) {
     
       
     )) 
+    
     
     formattable::as.datatable(a, 
                  rownames = FALSE,
@@ -3322,9 +3366,12 @@ server <- function(input, output, session) {
 
   ################################################
   
+  #hide loader after website is rendered####
+  Sys.sleep(6)
+  hide_waiter()
+  ################################################
   
 }
-
 
 
 ##################################################

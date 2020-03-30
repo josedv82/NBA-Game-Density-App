@@ -3,7 +3,7 @@ Simple app to visually explore the density (rest) of the schedule for NBA teams.
 
 ## Logo
 
-<img width="150" src="https://www.dropbox.com/s/tv0z4ws9e67axyd/hexlogo.png?raw=1">
+<img width="150" src="https://www.dropbox.com/s/5dqbiicb2uifdo2/waiter.gif?raw=1">
 
 
 ## Intro

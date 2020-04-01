@@ -1531,10 +1531,21 @@ ui <- dashboardPagePlus(
   
   header = dashboardHeaderPlus(
     
+    left_menu = tagList(
+      
+    #NBAtwitter feed
+    dropdownBlock(
+      id = "twitterdropdown",
+      title = "NBA Feed",
+      icon = "twitter-square",
+      badgeStatus = NULL,
+      HTML('<a class="twitter-timeline" data-height="600" href="https://twitter.com/NBAGameDensity/lists/nba-game-density-app?ref_src=twsrc%5Etfw">A Twitter List by NBAGameDensity</a> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>')
+    )),
     
     #popup modal link in header
     tags$li(class = "dropdown", actionLink("welcome", label = 'About', icon = icon("info-circle"), style = 'color:white'),
             bsTooltip("welcome", HTML("Click to know more about this app."), placement = "bottom", trigger = "hover", options = NULL)),
+  
     
     enable_rightsidebar = TRUE,
     rightSidebarIcon = "cogs",
@@ -1632,6 +1643,9 @@ ui <- dashboardPagePlus(
                ".shiny-output-error { visibility: hidden; }",
                ".shiny-output-error:before { visibility: hidden; }"
     ),
+    
+    #sets width of dropdownmenu
+    tags$head(tags$style(HTML('.navbar-custom-menu>.navbar-nav>li>.dropdown-menu {width:500px;}'))),
     
     #this piece helps alight the logos in the picker input
     tags$head(tags$style(".jhr{ display: inline;vertical-align: middle;padding-left: 10px;}")),
@@ -3381,14 +3395,14 @@ server <- function(input, output, session) {
       mutate(Team = as.factor(Team)) 
     
  ggplot(a, aes(x=reorder(ID, Team), y = Team, fill=movIndex)) +
-    geom_tile(colour="white",size=0.25) +
+    geom_tile(colour="#273746",size=0.25) +
     labs(x="\n Regular Season Games \n", y="", title = paste("\n", input$rolling, "Games Rolling Density Index for all Regular Season Games in", input$season_filter, sep = " "), 
          subtitle = "\n Start of Season >", caption = "https://josedv.shinyapps.io/NBASchedule/ \n") +
     scale_y_discrete(expand=c(0,0)) +
     scale_x_discrete(expand=c(0,0)) +
     scale_fill_gradient(low = "springgreen", high = "red") +
     theme_grey(base_size=8) +
-    guides(fill=guide_legend(title="Density\nRolling Index", reverse = TRUE))+
+    guides(fill=guide_legend(title="Rolling\nDensity Index", reverse = TRUE ))+
     theme(
       legend.text=element_text(face="bold", color = "grey", size = 10),
       axis.ticks=element_line(size=0.4),
@@ -3401,6 +3415,9 @@ server <- function(input, output, session) {
       plot.subtitle = element_text(size = 12, color = "darkgray"),
       axis.title.x = element_text(size = 12, color = "darkgray", hjust = 1),
       legend.title = element_text(color = "gray", size = 14, face = "bold"),
+      legend.key = element_blank(),
+      panel.background = element_blank(),
+      panel.grid = element_blank(),
       panel.border=element_blank())
   
  ####################################################

@@ -78,7 +78,7 @@ Users can also opt to look at a moving average of the Index metric for 'x' numbe
 ## Data
 The data used to create this app was downloaded from [BigDataBall](https://www.bigdataball.com/) and [Basketball-Reference](https://www.basketball-reference.com/). 
 
-For more information on nomemclature used throughout this app when refering to types of rest days, please visit this [link](https://www.nbastuffer.com/2019-2020-nba-rest-days-stats/).
+For more information on nomenclature used throughout this app when refering to types of rest days, please visit this [link](https://www.nbastuffer.com/2019-2020-nba-rest-days-stats/).
 
 ## Final Comments
 This app is an ongoing project and new reports or adjustments may be implemented in the future. 

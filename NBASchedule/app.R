@@ -1533,15 +1533,15 @@ ui <- dashboardPagePlus(
     
     
     #popup modal link in header
-    tags$li(class = "dropdown", actionLink("welcome", label = NULL, icon = icon("info-circle"), style = 'color:#d27120'),
+    tags$li(class = "dropdown", actionLink("welcome", label = 'About', icon = icon("info-circle"), style = 'color:white'),
             bsTooltip("welcome", HTML("Click to know more about this app."), placement = "bottom", trigger = "hover", options = NULL)),
     
     enable_rightsidebar = TRUE,
     rightSidebarIcon = "cogs",
     
     title = tagList(
-     shiny::span(class = "logo-lg", "NBA Game Density Simulator", style = "color:#d27120"), 
-      img(src = "hexlogo.png", width = "35px", height = "35px")),
+     shiny::span(class = "logo-lg", "NBA Game Density Simulator", style = "color:white"), 
+      img(src = "hexlogo.png", width = "35px", height = "33px")),
     
     
     titleWidth = 330),
@@ -1601,9 +1601,7 @@ ui <- dashboardPagePlus(
             pickerInput(
             inputId = "team_filter",
             label = "Select Team", 
-            #choices = sche$Team %>% unique() %>% sort(),
             choices = df$val,
-            #selected = "Chicago Bulls", 
             choicesOpt = list(style = rep(("color: black; background: white"),30), content = df$img),
             multiple = F)),
           tags$hr(),
@@ -1734,7 +1732,8 @@ ui <- dashboardPagePlus(
                         
                         )),
                       
-                      fluidRow(column(width = 12, withLoader(DT::dataTableOutput("all_teams", width = "100%"), type = "html", loader = "loader1"))))
+             fluidRow(column(width = 12, withLoader(DT::dataTableOutput("all_teams", width = "100%"), type = "html", loader = "loader1")))),
+             tabPanel("Heatmap", icon = icon("solar-panel"), fluidRow(column(width = 12, withLoader(plotOutput("heatmap", width = "100%", height = '750px'),type = "html", loader = "loader1"))))
       )#tabbox
   )#tabitem
   
@@ -1748,6 +1747,7 @@ ui <- dashboardPagePlus(
   show_waiter_on_load(
     color = "white",
     div(style = "color:white;",
+        tags$h2("Loading...", style = "color:grey", align = "center"),
         tags$img(src="waiter.gif", width="auto", height = "auto")
     )
   )
@@ -1893,7 +1893,7 @@ ui <- dashboardPagePlus(
   #this codes add a footer to the dashboard
   footer = dashboardFooter(
     
-    right_text = HTML(paste(img(src = "hexlogo.gif", width = "35px", height = "35px"), 
+    right_text = HTML(paste(img(src = "hexlogo.png", width = "35px", height = "33px"), 
                             tags$span("NBA Game Density APP", style = "font-family: Arial; color: grey; font-size: 16px"))),
     
     left_text = HTML(paste(icon = icon("copyright"), tags$span("2020. Jose Fernandez", style = "font-family: Arial; color: grey; font-size: 16px"),
@@ -1906,7 +1906,6 @@ ui <- dashboardPagePlus(
 
 ###################################################
 
-###################################################
 
 #Server Logic. 
 
@@ -1934,7 +1933,7 @@ server <- function(input, output, session) {
     showModal(
       
       modalDialog(
-        HTML(paste(img(src = "hexlogo.png", width = "80px", height = "80px"), tags$br(), tags$span("NBA Game Density App", style = "font-family: Arial; color: white; font-size:40px"))),
+        HTML(paste(img(src = "hexlogo.png", width = "80px", height = "75px"), tags$br(), tags$span("NBA Game Density App", style = "font-family: Arial; color: white; font-size:40px"))),
         tags$hr(),
         tags$br(),
         tags$h4("Game Density Simulator", style = "padding-left:2.3em; font-family: Arial; color: white"),
@@ -1985,7 +1984,7 @@ server <- function(input, output, session) {
       filter(Season == input$season_filter) %>%
       
       mutate(Season = as.factor(Season)) %>%
-      group_by(Team, Season) %>%
+      group_by(Team) %>%
       
       mutate(Month = ifelse(Month == 1, 'January',
                             ifelse(Month == 2, 'February',
@@ -2084,11 +2083,15 @@ server <- function(input, output, session) {
       
       mutate(index = location.i + Rest.i + elapsed.i + travel.i + shift.i + direction.i) %>%
       
+      ungroup() %>%
+      
       mutate(Normalized = ifelse(is.na(index), 0, round((index-min(index))/(max(index)-min(index)), 2))) %>%
       
       select(Season, Month, Date, Location, City, Arena, Team, Opponent, Team_pts, Opp_pts, Density = Rest, Normalized) %>%
       
       #
+      
+      group_by(Team) %>%
       
       mutate(MovIndex = round(roll_meanr(Normalized, n = input$rolling, align = "right", fill = 0, na.rm = T),2))
     
@@ -2894,14 +2897,19 @@ server <- function(input, output, session) {
     
       
     filter(Team == input$team_filter) %>%
-      
-    select(Month, Date, Location, Team, Opponent, Outcome = `W/L`, Points = Team_pts, `Opp Points` = `Opp_pts`, Density, `Opp Density`, Index, movIndex, `Opp movIndex`) %>%
     
     mutate(`Density` = ifelse(is.na(`Density`), "", `Density`)) %>%
     mutate(`Opp Density` = ifelse(is.na(`Opp Density`), "", `Opp Density`)) %>%
     mutate(`Index` = ifelse(is.na(`Index`), "", `Index`)) %>%
     mutate(`movIndex` = ifelse(`movIndex` == 0, "", `movIndex`)) %>%
     mutate(`Opp movIndex` = ifelse(`Opp movIndex` == 0, "", `Opp movIndex`)) %>%
+    replace_na(list(Team_pts = "-", Opp_pts = "-")) %>%
+    mutate(Score = paste(Team_pts," - ", Opp_pts)) %>%
+    select(-Team_pts, -Opp_pts) %>%
+      
+    select(Month, Date, Location, Team, Opponent, Outcome = `W/L`, Score, Density, `Opp Density`, Index, movIndex, `Opp movIndex`) %>%
+    
+      
     formattable(
       
       list(
@@ -2928,11 +2936,7 @@ server <- function(input, output, session) {
                                                                           ifelse(x == "B2B", "#cc6600",
                                                                                  ifelse(x == "1", "#cc9900",
                                                                                         ifelse(x == "2", "#cccc00",
-                                                                                               ifelse(x == "3+", "#ccff00", "transparent")))))))),
-    
-    `Points` = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(is.na(x), "transparent", "lightgray"))),
-                                  
-    `Opp Points` = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(is.na(x), "transparent", "lightgray")))
+                                                                                               ifelse(x == "3+", "#ccff00", "transparent"))))))))
     
       
     )) 
@@ -2950,14 +2954,14 @@ server <- function(input, output, session) {
                                   "}"))) %>%
       
     formatStyle('Team', fontWeight = 'bold') %>%
-    formatStyle('Points', fontWeight = 'bold') %>%
+    formatStyle('Score', fontWeight = 'bold') %>%
     formatStyle('Density', fontWeight = 'bold') %>%
     formatStyle('Index', fontWeight = 'bold') %>%
     formatStyle('movIndex', fontWeight = 'bold', color = "black") %>%
     formatStyle('Opp movIndex', fontWeight = 'bold', color = "black") %>%
     formatStyle('Outcome', fontWeight = 'bold') %>%
       
-    formatStyle(c(2,3,5, 8, 10, 11,13), `border-right` = "solid 2px")
+    formatStyle(c(2,3,5, 7, 9, 10,12), `border-right` = "solid 2px")
     
   })
   
@@ -3305,12 +3309,9 @@ server <- function(input, output, session) {
   
   #################################################
   
-  #################################################
-  
   #all teams tab
   
   #################################################
-  
   
   #density table tab#######
   
@@ -3365,6 +3366,49 @@ server <- function(input, output, session) {
   })
 
   ################################################
+  
+  #heatmap####
+  
+  
+  output$heatmap <- renderPlot({
+  
+  a <- sche2() %>%
+      select(Team, movIndex) %>%
+      group_by(Team) %>%
+      mutate(ID = row_number()) %>%
+      filter(ID > input$rolling) %>%
+      ungroup() %>%
+      mutate(Team = as.factor(Team)) 
+    
+ ggplot(a, aes(x=reorder(ID, Team), y = Team, fill=movIndex)) +
+    geom_tile(colour="white",size=0.25) +
+    labs(x="\n Regular Season Games \n", y="", title = paste("\n", input$rolling, "Games Rolling Density Index for all Regular Season Games in", input$season_filter, sep = " "), 
+         subtitle = "\n Start of Season >", caption = "https://josedv.shinyapps.io/NBASchedule/ \n") +
+    scale_y_discrete(expand=c(0,0)) +
+    scale_x_discrete(expand=c(0,0)) +
+    scale_fill_gradient(low = "springgreen", high = "red") +
+    theme_grey(base_size=8) +
+    guides(fill=guide_legend(title="Density\nRolling Index", reverse = TRUE))+
+    theme(
+      legend.text=element_text(face="bold", color = "grey", size = 10),
+      axis.ticks=element_line(size=0.4),
+      plot.background=element_rect(fill = "#273746"),
+      axis.text.y = element_text(size = 12, color = "lightgray"),
+      legend.background = element_blank(),
+      axis.text.x = element_text(size = 10, color = "grey"),
+      plot.title = element_text(size = 24, color = "white"),
+      plot.caption = element_text(size = 12, color = "lightblue"),
+      plot.subtitle = element_text(size = 12, color = "darkgray"),
+      axis.title.x = element_text(size = 12, color = "darkgray", hjust = 1),
+      legend.title = element_text(color = "gray", size = 14, face = "bold"),
+      panel.border=element_blank())
+  
+ ####################################################
+    
+  })
+  
+  
+  ##################################################
   
   #hide loader after website is rendered####
   Sys.sleep(6)

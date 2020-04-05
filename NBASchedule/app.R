@@ -32,6 +32,7 @@ library(waiter)
 #loading data####
 data <- read_excel("NBA_Schedule.xlsx", sheet = "schedule")
 score <- read_excel("nba_scores.xlsx", sheet = "scores")
+articles <- read_excel("articles.xlsx", sheet = "articles")
 
 
 #####################################################
@@ -1515,7 +1516,7 @@ Logos <- sche %>%
 ###################################################
 
 #links social media buttons####
-url <- "https://twitter.com/intent/tweet?text=Link to the NBA game density app. @jfernandez__&url=https://josedv.shinyapps.io/NBASchedule/"
+url <- "https://twitter.com/intent/tweet?text=Check out this app to explore the density of the schedule in the NBA. @NBAGameDensity&url=https://josedv.shinyapps.io/NBASchedule/"
 url2 <- "https://josedv.shinyapps.io/NBASchedule/"
 
 
@@ -1622,7 +1623,9 @@ ui <- dashboardPagePlus(
           ),
       
       #all teams tab
-      menuItem("All Teams", tabName = "allteams", icon = icon("th"), startExpanded = F)
+      menuItem("All Teams", tabName = "allteams", icon = icon("th"), startExpanded = F),
+      #Recommended Reading
+      menuItem("Reading Materials", tabName = "reading", icon = icon("book-reader"), startExpanded = F)
       
     )#sidebar menu
     
@@ -1749,8 +1752,52 @@ ui <- dashboardPagePlus(
              fluidRow(column(width = 12, withLoader(DT::dataTableOutput("all_teams", width = "100%"), type = "html", loader = "loader1")))),
              tabPanel("Heatmap", icon = icon("solar-panel"), fluidRow(column(width = 12, withLoader(plotOutput("heatmap", width = "100%", height = '750px'),type = "html", loader = "loader1"))))
       )#tabbox
-  )#tabitem
+  ),#tabitem
   
+  # Tab items for all teams tab
+  tabItem(
+    tabName = "reading",
+           
+      fluidRow(style = "padding-bottom: 5px", column(width = 2,
+                                                   
+      dropdown(
+        
+        
+        #input to filter articles by type
+          pickerInput(
+          inputId = "type.reads",
+          label = shiny::HTML("<p><span style='color: black'>Article Type</span></p>"), 
+          choices = articles$Type %>% unique(),
+          selected = "Research / Scientific",
+          multiple = TRUE), 
+          
+          tags$br(),
+          tags$hr(),
+          tags$br(),
+        
+        sliderInput(
+          inputId = "year.reads",
+          label = shiny::HTML("<p><span style='color: black'>Select Year(s)</span></p>"),  
+          sep = "",
+          min = min(articles$Year),
+          max = max(articles$Year),
+          step = 1,
+          value = c(min(articles$Year), max(articles$Year))
+        ),
+        
+        inputId = "dropdown1",
+        status = "info",
+        icon = icon("filter"), width = "300px",
+        tooltip = tooltipOptions(title = "Filtering Options")
+        
+      )
+      
+      )),#fluidrow
+      
+    fluidRow(column(width = 12, withLoader(DT::dataTableOutput("reads", width = "100%"), type = "html", loader = "loader1")))     
+  
+    
+  )#tabitem
  
     ),#tabitems
   
@@ -1910,8 +1957,7 @@ ui <- dashboardPagePlus(
     right_text = HTML(paste(img(src = "hexlogo.png", width = "35px", height = "33px"), 
                             tags$span("NBA Game Density APP", style = "font-family: Arial; color: grey; font-size: 16px"))),
     
-    left_text = HTML(paste(icon = icon("copyright"), tags$span("2020. Jose Fernandez", style = "font-family: Arial; color: grey; font-size: 16px"),
-                            tags$span(tags$a(href= "mailto:jose.fernandezdv@gmail.com", icon("envelope"))), 
+    left_text = HTML(paste(icon = icon("copyright"), tags$span("2020. Created by Jose Fernandez", style = "font-family: Arial; color: grey; font-size: 16px"),
                             tags$span(tags$a(href= "https://twitter.com/jfernandez__", icon("twitter"))),
                             sep = " "))
   )
@@ -1969,7 +2015,7 @@ server <- function(input, output, session) {
         p("There are various options throughout the app to compare a team density index vs the rivals.", style = "padding-left:3em; font-family: Arial; color: white"),
         tags$br(),
         tags$hr(),
-        HTML(paste(tags$span("League wide summaries will be added in the near feature. In the meantime, please share your feedback via", style = "font-family: Arial; color: white"), tags$span(tags$a(href= "mailto:jose.fernandezdv@gmail.com", "email.")))),
+        HTML(paste(tags$span("League wide summaries will be added in the near feature. In the meantime, please share your feedback via", style = "font-family: Arial; color: white"), tags$span(tags$a(href= "https://twitter.com/NBAGameDensity", "Twitter.")))),
         
         
         easyClose = TRUE)
@@ -3323,8 +3369,7 @@ server <- function(input, output, session) {
   
   #################################################
   
-  #all teams tab
-  
+#all teams tab
   #################################################
   
   #density table tab#######
@@ -3420,17 +3465,58 @@ server <- function(input, output, session) {
       panel.grid = element_blank(),
       panel.border=element_blank())
   
- ####################################################
     
   })
   
   
   ##################################################
   
-  #hide loader after website is rendered####
+#Reading materials tab#####
+  
+  output$reads <- renderDataTable({
+    
+    
+    art <- articles %>%
+      mutate(Link = paste0("<a href='", Link,"' target='_blank'>", icon("link"),"</a>")) %>%
+      
+      filter(Type %in% input$type.reads) %>%
+      filter(Year >= input$year.reads[1] & Year <= input$year.reads[2]) %>%
+      
+      formattable()
+    
+    as.datatable(art, 
+                 rownames = FALSE,
+                 extensions = c('Responsive', 'Buttons'),
+                 class = 'cell-border stripe',
+                 escape = FALSE,
+                 caption = HTML("Schedule related references specific to NBA / Basketball. Last update: April 2020"),
+                 options = list(dom = 'tB',
+                                bSort=T,
+                                buttons = c('copy', 'csv', 'excel', 'pdf', 'print', I('colvis')),
+                                pageLength = 500,
+                                initComplete = JS(
+                                  "function(settings, json) {",
+                                  "$(this.api().table().header()).css({'background-color': '#17202a', 'color': '#fff'});",
+                                  "}"))) %>%
+      
+      formatStyle('Type', backgroundColor =  '#bfc9ca', color = "#606060") %>%
+      formatStyle('Year', backgroundColor =  '#bfc9ca', color = "#606060") %>%
+      formatStyle('Title', backgroundColor =  '#bfc9ca', color = "#606060", fontWeight = "bold") %>%
+      formatStyle('Journal', backgroundColor =  '#bfc9ca', color = "#606060") %>%
+      formatStyle('Authors', backgroundColor =  '#bfc9ca', color = "#606060") %>%
+      formatStyle('Link', backgroundColor =  '#bfc9ca', color = "#606060", fontWeight = "bold")
+    
+  })
+  
+  ##################################################
+  
+
+#hide loader after website is rendered####
   Sys.sleep(6)
   hide_waiter()
   ################################################
+  
+
   
 }
 

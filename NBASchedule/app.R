@@ -1768,7 +1768,7 @@ ui <- dashboardPagePlus(
           inputId = "type.reads",
           label = shiny::HTML("<p><span style='color: black'>Article Type</span></p>"), 
           choices = articles$Type %>% unique(),
-          selected = "Research / Scientific",
+          selected = "Research",
           multiple = TRUE), 
           
           tags$br(),
@@ -3482,7 +3482,11 @@ server <- function(input, output, session) {
       filter(Type %in% input$type.reads) %>%
       filter(Year >= input$year.reads[1] & Year <= input$year.reads[2]) %>%
       
-      formattable()
+      formattable(list(
+        
+        Type = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "Research", "steelblue", "salmon")))
+        
+      ))
     
     as.datatable(art, 
                  rownames = FALSE,

@@ -1616,9 +1616,9 @@ ui <- dashboardPagePlus(
             choices = df$val,
             choicesOpt = list(style = rep(("color: black; background: white"),30), content = df$img),
             multiple = F)),
-          tags$hr(),
-          menuSubItem(icon = NULL, tabName = "teambyteam", fluidRow(withLoader(DT::dataTableOutput("team_table_density"), type ="html", loader = "loader1"), style="padding-right: 17px;")), 
-          tags$hr()
+          tags$br(),
+          menuSubItem(icon = NULL, tabName = "teambyteam", fluidRow(withLoader(DT::dataTableOutput("daily_games"), type ="html", loader = "loader1"), style="padding-right: 17px;")), 
+          tags$br()
           
           ),
       
@@ -1647,8 +1647,8 @@ ui <- dashboardPagePlus(
                ".shiny-output-error:before { visibility: hidden; }"
     ),
     
-    #sets width of dropdownmenu
-    tags$head(tags$style(HTML('.navbar-custom-menu>.navbar-nav>li>.dropdown-menu {width:500px;}'))),
+    #sets width of dropdownBlock where twitter is embedded
+    tags$head(tags$style(HTML('.navbar-custom-menu>.navbar-nav>li>.dropdown-menu {width:400px;}'))),
     
     #this piece helps alight the logos in the picker input
     tags$head(tags$style(".jhr{ display: inline;vertical-align: middle;padding-left: 10px;}")),
@@ -1727,7 +1727,13 @@ ui <- dashboardPagePlus(
       
       tabPanel("Schedule Table", icon = icon("calendar-alt"), fluidRow(column(width = 12, withLoader(DT::dataTableOutput("team_table", width = "100%"), type = "html", loader = "loader1")))),
       tabPanel("Rolling Density", icon = icon("chart-line"), fluidRow(column(width = 12, withLoader(plotlyOutput("team_plot", height = "auto", width = "100%"), type = "html", loader = "loader1")))),
-      tabPanel("Outcome", icon = icon("tasks"), fluidRow(column(width = 8, DT::dataTableOutput("w_l_table")), column(width = 4, DT::dataTableOutput("H_A_table"))))
+      tabPanel("Outcome", icon = icon("tasks"), fluidRow(style = "padding:15px", 
+                                                         column(width = 8, DT::dataTableOutput("w_l_table")), 
+                                                         column(width = 4, 
+                                                fluidRow(DT::dataTableOutput("H_A_table")), 
+                                                           tags$br(), 
+                                                           tags$br(), 
+                                                fluidRow(DT::dataTableOutput("team_table_density")))))
     )#tabbox
     
     ),#tabitem
@@ -1758,7 +1764,7 @@ ui <- dashboardPagePlus(
   tabItem(
     tabName = "reading",
            
-      fluidRow(style = "padding-bottom: 5px", column(width = 2,
+      fluidRow(style = "padding-bottom: 8px", column(width = 2,
                                                    
       dropdown(
         
@@ -1785,6 +1791,12 @@ ui <- dashboardPagePlus(
           value = c(min(articles$Year), max(articles$Year))
         ),
         
+        tags$br(),
+        tags$hr(),
+        tags$br(),
+        
+        blockQuote(uiOutput('item'), side = "right"),
+        
         inputId = "dropdown1",
         status = "info",
         icon = icon("filter"), width = "300px",
@@ -1809,7 +1821,7 @@ ui <- dashboardPagePlus(
     color = "white",
     div(style = "color:white;",
         tags$h2("Loading...", style = "color:grey", align = "center"),
-        tags$img(src="waiter.gif", width="auto", height = "auto")
+        tags$img(src="waiter.gif", width="auto")
     )
   )
   
@@ -2397,80 +2409,76 @@ server <- function(input, output, session) {
 #Team by Team tab
 ###################################################  
   
-  #mini table added to the left sidebar menu#####
-  output$team_table_density <- DT::renderDataTable({
-  
-    num <- sche2() %>%
-   
-      filter(Team == input$team_filter) %>%
+  #mini chart on sidebar####
+  output$daily_games <- DT::renderDataTable({
+    
+    a <- sche2() %>% 
+      filter(Location == "Home") %>%
+      filter(Date == input$date_filter) %>%
+      filter(Team != input$team_filter & Opponent != input$team_filter) %>%
+      mutate(Team = sub('^.* ([[:alnum:]]+)$', '\\1', Team)) %>%
+      mutate(Opponent = sub('^.* ([[:alnum:]]+)$', '\\1', Opponent)) %>%
+      select(Team, Opponent, Density, `Opp Density`) %>%
       
-      select(Team, Density) %>%
-      na.omit() %>%
-      group_by(Density) %>%
-      tally() %>%
-      select(Type = Density, n)
-    
-    num[is.na(num)] <- 0
-    
-    
-    
-    num2 <- sche2() %>%
-      filter(Team == input$team_filter) %>%
-      select(Opponent, `Opp Density`) %>%
-      na.omit() %>%
-      group_by(`Opp Density`) %>%
-      tally() %>%
-      select(Type = `Opp Density`, Opp = n)
-    
-    num2[is.na(num2)] <- 0
-    
-    
-    b <- full_join(num, num2) %>%
+      mutate(Team = ifelse(Team == "Cavaliers", "Cavs", 
+                           ifelse(Team == "Mavericks", "Mavs",
+                                  ifelse(Team == "Timberwolves", "Wolves", Team)))) %>%
+      
+      mutate(Opponent = ifelse(Opponent == "Cavaliers", "Cavs", 
+                           ifelse(Opponent == "Mavericks", "Mavs",
+                                  ifelse(Opponent == "Timberwolves", "Wolves", Opponent)))) %>%
+
+      mutate(Game = paste("<span style=color:white>", Team, "</span>", "<span style=color:gray>", " vs ", "</span>", "<span style=color:white>", Opponent, "</span>")) %>%
+      
+      select(` Rest` = Density, Game, `Rest ` = `Opp Density`) %>%
       
       
-      mutate(order = ifelse(Type == "3IN4-B2B", 1, 
-                            ifelse(Type == "3IN4", 2,
-                                   ifelse(Type == "B2B", 3,
-                                          ifelse(Type == "1", 4,
-                                                 ifelse(Type == "2", 5,
-                                                        ifelse(Type == "3+", 6, ""))))))) %>%
-      arrange(order) %>%
-      select(-order) %>%
-      
-      replace_na(list(n = 0, Opp = 0)) %>%
-    
-      
-      formattable(list(
+      formattable(
         
-        Type = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "3IN4-B2B", "#ff0000", 
-                                                                                  ifelse(x == "3IN4", "#ff3300", 
-                                                                                    ifelse(x == "B2B", "#cc6600",
-                                                                                      ifelse(x == "1", "#cc9900",
-                                                                                        ifelse(x == "2", "#cccc00",
-                                                                                          ifelse(x == "3+", "#ccff00", "transparent"))))))))))
-        
-      
+        list(
+          
+          ` Rest`= formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "3IN4-B2B", "#ff0000", 
+                                                                                                 ifelse(x == "3IN4", "#ff3300", 
+                                                                                                        ifelse(x == "B2B", "#cc6600",
+                                                                                                               ifelse(x == "1", "#cc9900",
+                                                                                                                      ifelse(x == "2", "#cccc00",
+                                                                                                                             ifelse(x == "3+", "#ccff00", "transparent")))))))), 
+          
+          
+          `Rest ` = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "3IN4-B2B", "#ff0000", 
+                                                                                                       ifelse(x == "3IN4", "#ff3300", 
+                                                                                                              ifelse(x == "B2B", "#cc6600",
+                                                                                                                     ifelse(x == "1", "#cc9900",
+                                                                                                                            ifelse(x == "2", "#cccc00",
+                                                                                                                                   ifelse(x == "3+", "#ccff00", "transparent"))))))))
+          
+          
+        )) 
     
-    formattable::as.datatable(b, 
-                 rownames = FALSE,
-                 colnames = c("", input$team_filter, "Opposition"),
-                 extensions = 'Responsive',
-                 caption = HTML("Total count of density index per season for <br> the selected team vs opponents."),
-                 options = list(dom = 't',
-                                bSort=FALSE,
-                                initComplete = JS(
-                                  "function(settings, json) {",
-                                  "$(this.api().table().header()).css({'background-color': '#17202a', 'color': '#fff'});",
-                                  "}"))) %>%
+    validate(need(a$Game != "", "No other games are playes on this date"))
+    
+    formattable::as.datatable(a,  
+                              caption = paste("All games on ", input$date_filter, ":", sep = ""),
+                              rownames = FALSE,
+                              escape = F,
+                              options = list(dom = 't', 
+                                             pageLength = 90, 
+                                             bSort=FALSE,
+                                             columnDefs = list(list(className = 'dt-center', targets = "_all")),
+                                             initComplete = JS(
+                                               "function(settings, json) {",
+                                               "$(this.api().table().header()).css({'background-color': 'rgb(52,62,72)', 'color': 'ivory'});",
+                                               "}"))) %>%
       
-      formatStyle('Type', fontWeight = 'bold', backgroundColor = "#283747") %>%
-      formatStyle('n', backgroundColor =  '#bfc9ca', color = " #212f3d ") %>%
-      formatStyle('Opp', backgroundColor =  '#bfc9ca', color = " #212f3d ") 
+    formatStyle('Rest ', backgroundColor =  'rgb(52,62,72)') %>%
+    formatStyle(' Rest', backgroundColor =  'rgb(52,62,72)') %>%
+    formatStyle('Game', backgroundColor =  'rgb(52,62,72)')
     
   })
   
   
   ###############################################
+ 
   
   #game card tab############
   
@@ -3369,6 +3377,81 @@ server <- function(input, output, session) {
   
   #################################################
   
+  #table added to the left sidebar menu#####
+  output$team_table_density <- DT::renderDataTable({
+    
+    num <- sche2() %>%
+      
+      filter(Team == input$team_filter) %>%
+      
+      select(Team, Density) %>%
+      na.omit() %>%
+      group_by(Density) %>%
+      tally() %>%
+      select(Type = Density, n)
+    
+    num[is.na(num)] <- 0
+    
+    
+    
+    num2 <- sche2() %>%
+      filter(Team == input$team_filter) %>%
+      select(Opponent, `Opp Density`) %>%
+      na.omit() %>%
+      group_by(`Opp Density`) %>%
+      tally() %>%
+      select(Type = `Opp Density`, Opp = n)
+    
+    num2[is.na(num2)] <- 0
+    
+    
+    b <- full_join(num, num2) %>%
+      
+      
+      mutate(order = ifelse(Type == "3IN4-B2B", 1, 
+                            ifelse(Type == "3IN4", 2,
+                                   ifelse(Type == "B2B", 3,
+                                          ifelse(Type == "1", 4,
+                                                 ifelse(Type == "2", 5,
+                                                        ifelse(Type == "3+", 6, ""))))))) %>%
+      arrange(order) %>%
+      select(-order) %>%
+      
+      replace_na(list(n = 0, Opp = 0)) %>%
+      
+      
+      formattable(list(
+        
+        Type = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "3IN4-B2B", "#ff0000", 
+                                                                                            ifelse(x == "3IN4", "#ff3300", 
+                                                                                                   ifelse(x == "B2B", "#cc6600",
+                                                                                                          ifelse(x == "1", "#cc9900",
+                                                                                                                 ifelse(x == "2", "#cccc00",
+                                                                                                                        ifelse(x == "3+", "#ccff00", "transparent"))))))))))
+    
+    
+    
+    formattable::as.datatable(b, 
+                              rownames = FALSE,
+                              colnames = c("", input$team_filter, "Opposition"),
+                              extensions = 'Responsive',
+                              caption = HTML("Density counts by team & opponents.."),
+                              options = list(dom = 't',
+                                             bSort=FALSE,
+                                             initComplete = JS(
+                                               "function(settings, json) {",
+                                               "$(this.api().table().header()).css({'background-color': '#17202a', 'color': '#fff'});",
+                                               "}"))) %>%
+      
+      formatStyle('Type', fontWeight = 'bold', backgroundColor = "#283747") %>%
+      formatStyle('n', backgroundColor =  '#bfc9ca', color = " #212f3d ") %>%
+      formatStyle('Opp', backgroundColor =  '#bfc9ca', color = " #212f3d ") 
+    
+  })
+  
+  
+  ###############################################
+  
 #all teams tab
   #################################################
   
@@ -3471,8 +3554,27 @@ server <- function(input, output, session) {
   
   ##################################################
   
-#Reading materials tab#####
+#reading material tab
   
+  #reactive to show number of items selected on filter####
+  art1 <- reactive({articles %>% 
+    
+    filter(Type %in% input$type.reads) %>%
+    filter(Year >= input$year.reads[1] & Year <= input$year.reads[2]) %>%
+    summarise(a = n())
+    
+  })
+  
+  #number of items selected####
+  
+  output$item <- renderUI({
+  
+  tags$h3(paste(HTML(art1()$a, " items selected")), style = "color: slategray")
+  
+})
+  
+  
+  #table####
   output$reads <- renderDataTable({
     
     
@@ -3482,9 +3584,11 @@ server <- function(input, output, session) {
       filter(Type %in% input$type.reads) %>%
       filter(Year >= input$year.reads[1] & Year <= input$year.reads[2]) %>%
       
+      arrange(desc(Year)) %>%
+      
       formattable(list(
         
-        Type = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "Research", "steelblue", "salmon")))
+        Type = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "Research", "steelblue", "darkred")))
         
       ))
     
@@ -3493,8 +3597,8 @@ server <- function(input, output, session) {
                  extensions = c('Responsive', 'Buttons'),
                  class = 'cell-border stripe',
                  escape = FALSE,
-                 caption = HTML("Schedule related references specific to NBA / Basketball. Last update: April 2020"),
-                 options = list(dom = 'tB',
+                 caption = HTML("The following references are specific to Basketball / NBA. Topics include jet-lag, travel, sleep, home-court advantage, schedule density, etc. | Last update: April 2020 |"),
+                 options = list(dom = 'Bt',
                                 bSort=T,
                                 buttons = c('copy', 'csv', 'excel', 'pdf', 'print', I('colvis')),
                                 pageLength = 500,

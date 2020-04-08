@@ -25,14 +25,17 @@ library(shinyalert)
 library(shinycustomloader)
 library(geosphere)
 library(waiter)
+library(shinyjs)
 
 
 #####################################################
 
 #loading data####
-data <- read_excel("NBA_Schedule.xlsx", sheet = "schedule")
-score <- read_excel("nba_scores.xlsx", sheet = "scores")
-articles <- read_excel("articles.xlsx", sheet = "articles")
+data <- read_excel("NBA_Schedule.xlsx", sheet = "schedule") #schedule
+score <- read_excel("nba_scores.xlsx", sheet = "scores") #scores
+articles <- read_excel("articles.xlsx", sheet = "articles") #articles and media links
+highlights <- read_excel("highlights.xlsx", sheet = "games") %>% mutate(Date = as.Date(Date, origin = "1970-01-01")) %>% select(-Season)#video highlights
+highlights2 <- highlights %>% select(Team = Opponent, Opponent = Team, Date, Link) #video highlights for away games
 
 
 #####################################################
@@ -1663,6 +1666,10 @@ ui <- dashboardPagePlus(
     #initializes shiny alert for modal and popups
     useShinyalert(),
     
+    #shinyJS
+    useShinyjs(),
+    
+    
     tabItems(
     
     # Tab items for team by team tab
@@ -1672,6 +1679,7 @@ ui <- dashboardPagePlus(
              
       tabPanel("Game Card", icon = icon("map-marked-alt"), 
                fluidRow(column(width = 6, uiOutput("date"))),
+               
                tags$hr(),
                
                fluidRow(
@@ -1700,6 +1708,8 @@ ui <- dashboardPagePlus(
                         tags$br(),
                         tags$strong(htmlOutput("route")),
                         htmlOutput("distance"),
+                        tags$br(),
+                        actionButton("video_yes", label = 'Highlights', icon = icon("youtube"), style = 'color:white; background-color:#c4302b'),
                         withLoader(plotOutput("map_plot", width = "100%", height = "500px"), type = "html", loader = "loader1")
                         ),
                  
@@ -2502,6 +2512,55 @@ server <- function(input, output, session) {
       multiple = F)
     
   })
+  
+  #youtube button
+  
+  video <- reactive({
+    
+    req(input$date_filter)
+    req(input$team_filter)
+    
+    full_join(highlights, highlights2) %>%
+      filter(Team == input$team_filter) %>%
+      filter(Date == input$date_filter) %>%
+      mutate(id = sub('.*\\=', '', Link)) %>%
+      mutate(Link = paste("https://www.youtube.com/embed/", id, sep = ""))
+    
+  })
+  
+ 
+  
+  #video button
+  observe({
+    
+    
+    if(is.null(video()$Link) || length(video()$Link) == 0 || is.na(video()$Link) || video()$Link == "") {
+      shinyjs::hide("video_yes")
+    } else {
+      shinyjs::show("video_yes")
+    }
+  })
+  
+  
+  
+  #video highlights pop up modal
+  observeEvent(input$video_yes, {
+    
+    
+    showModal(
+      
+      modalDialog(
+        
+        tags$iframe(src = video()$Link, width = "100%", height = "600px"),
+        
+        size = "l",
+        
+        easyClose = TRUE)
+      
+    )#showmodal
+    
+    
+  })#observeEvent 
   
   
   

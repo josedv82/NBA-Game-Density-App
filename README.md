@@ -38,6 +38,10 @@ Comparison of different parameters for each game, including information about sc
 
 ![](https://www.dropbox.com/s/ahz38grcmii0dh8/mainview.png?raw=1)
 
+Furthermore, a link to watch the **game highlights** is provided. Currently, more than 90% of the games have video highlights available, providing more than 200 hours of video footage. 
+
+![](https://www.dropbox.com/s/8l3nslpq7jj87b6/frontpage.png?raw=1)
+
 ##### Schedule Table
 A dynamic table showing full season metrics. Different metrics are reported on this table, using color codes to alert users about the magnitude of the parameters. Users can compare differences in metrics between the selected team and the opponents they are facing throughout the season.
 

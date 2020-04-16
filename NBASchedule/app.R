@@ -26,6 +26,10 @@ library(shinycustomloader)
 library(geosphere)
 library(waiter)
 library(shinyjs)
+#library(nbastatR)
+library(ballr)
+library(grid)
+library(jpeg)
 
 
 #####################################################
@@ -36,6 +40,11 @@ score <- read_excel("nba_scores.xlsx", sheet = "scores") #scores
 articles <- read_excel("articles.xlsx", sheet = "articles") #articles and media links
 highlights <- read_excel("highlights.xlsx", sheet = "games") %>% mutate(Date = as.Date(Date, origin = "1970-01-01")) %>% select(-Season)#video highlights
 highlights2 <- highlights %>% select(Team = Opponent, Opponent = Team, Date, Link) #video highlights for away games
+pro_file <- read_excel("profiles.xlsx") #loads profile image of players
+shotchart <- read.csv("shotchart.csv") %>%
+  mutate(Date = as.Date(as.character(dateGame), format="%Y%m%d")) %>%
+  select(Season = slugSeason, Date, Player = namePlayer, Team = nameTeam, Event = typeEvent, Action = typeAction, Shot = typeShot, Quarter = numberPeriod, minRemaining = minutesRemaining, secRemaining = secondsRemaining, Zone = zoneBasic, Zone2 = nameZone, Range = zoneRange, Distance = distanceShot, locX = locationX, locY = locationY)
+  
 
 
 #####################################################
@@ -1555,7 +1564,7 @@ ui <- dashboardPagePlus(
     rightSidebarIcon = "cogs",
     
     title = tagList(
-     shiny::span(class = "logo-lg", "NBA Game Density Simulator", style = "color:white"), 
+     shiny::span(class = "logo-lg", "NBA Schedule Density", style = "color:white"), 
       img(src = "hexlogo.png", width = "35px", height = "33px")),
     
     
@@ -1628,7 +1637,7 @@ ui <- dashboardPagePlus(
       #all teams tab
       menuItem("All Teams", tabName = "allteams", icon = icon("th"), startExpanded = F),
       #Recommended Reading
-      menuItem("Reading Materials", tabName = "reading", icon = icon("book-reader"), startExpanded = F)
+      menuItem("Research / Media Articles", tabName = "reading", icon = icon("book-reader"), startExpanded = F)
       
     )#sidebar menu
     
@@ -1709,6 +1718,7 @@ ui <- dashboardPagePlus(
                         tags$strong(htmlOutput("route")),
                         htmlOutput("distance"),
                         tags$br(),
+                        actionButton("shotchart", label = 'Shot Chart', icon = icon("basketball-ball"), style = 'color:white; background-color:darkcyan'),
                         actionButton("video_yes", label = 'Highlights', icon = icon("youtube"), style = 'color:white; background-color:#c4302b'),
                         withLoader(plotOutput("map_plot", width = "100%", height = "500px"), type = "html", loader = "loader1")
                         ),
@@ -2563,7 +2573,6 @@ server <- function(input, output, session) {
   })#observeEvent 
   
   
-  
   #map plot
   output$map_plot <- renderPlot({
     
@@ -3013,6 +3022,169 @@ server <- function(input, output, session) {
     
     
   })
+  
+  
+  #shotchart button and logic
+  
+  
+  #filter for shotchart team
+  
+  output$team.shotchart <- renderUI({
+  
+  pickerInput(
+    inputId = "team_shotchart",
+    label = "Select Team",
+    choices = c(city()$Team, city()$Opponent),
+    multiple = F
+  )
+    
+  })
+  
+#shotchart data download
+  aa11 <- reactive({
+    
+    req(input$team_shotchart)
+    req(input$season_filter)
+      
+    shotchart %>%
+    
+    filter(Season == input$season_filter) %>% 
+      
+    filter(Team == input$team_shotchart)
+      
+    
+  })
+  
+  #filter for player shotchart
+  output$player.shotchart <- renderUI({
+    
+    pickerInput(
+      inputId = "player_shotchart",
+      label = "Select Player",
+      choices = as.character(aa11()$Player) %>% unique(),
+      multiple = F
+    )
+    
+    
+  })
+  
+  #shotchart player filtering
+ aa22 <- reactive({
+   
+    aa11() %>% 
+     
+    filter(Player == input$player_shotchart) %>% #dinamically populate players based on team selected
+    
+    mutate(Event = ifelse(Event == "Missed Shot", "Missed", "Made")) %>%
+     
+    mutate(Player = as.character(Player)) %>%
+    
+    full_join(pro_file, by = c("Player")) %>%
+    
+    na.omit() %>%
+    mutate(Image = gsub(" ", "", Image))
+   
+ })
+ 
+ #shotchart plot
+ 
+ output$shotchart <- renderPlot({
+   
+   req(input$date_filter)
+   
+   # images
+   courtImg.URL <- "https://thedatagame.files.wordpress.com/2016/03/nba_court.jpg"
+   court <- rasterGrob(readJPEG(RCurl::getURLContent(courtImg.URL)), width = unit(1,"npc"), height = unit(1,"npc"))
+   plaIMG <- rasterGrob(readJPEG(RCurl::getURLContent(unique(aa22()$Image))))
+   
+   # plot using NBA court background and colour by shot zone
+   ggplot(aa22() %>% filter(Zone != "Restricted Area"), aes(x=locX, y=locY)) + 
+     
+     annotation_custom(court, -250, 250, -50, 420) +
+     annotate("rect", xmin = -248, xmax = 248, ymin = 350, ymax = 420, fill = "white") +
+     annotate("rect", xmin = -250, xmax = -245, ymin = -50, ymax = 420, fill = "white", color = "white") +
+     annotate("rect", xmin = 245, xmax = 250, ymin = -50, ymax = 420, fill = "white", color = "white") +
+     annotate("rect", xmin = -248, xmax = 248, ymin = -50, ymax = -48, fill = "white") +
+     annotate("rect", xmin = -248, xmax = -210, ymin = 225, ymax = 250, fill = "white") +
+     annotate("rect", xmin = 210, xmax = 248, ymin = 225, ymax = 250, fill = "white") +
+     annotate("rect", xmin = -115, xmax = -107, ymin = -49, ymax = -40, fill = "white") +
+     annotate("rect", xmin = 107, xmax = 115, ymin = -49, ymax = -40, fill = "white") +
+     annotate("rect", xmin = -250, xmax = 250, ymin = -50, ymax = 420, fill = "black", alpha = 0) +
+     annotate("rect", xmin = -77, xmax = 79, ymin = -50, ymax = 140, fill = "black", alpha = 0) +
+     
+     
+     stat_binhex(bins = 15, color = "transparent", alpha = 0.4) +
+     
+     scale_fill_gradientn(colours = c("white", "black")) +
+     
+     geom_point(data = aa22() %>% filter(Date == input$date_filter), aes(color=Event), pch = 19, size = 5, alpha = 0.7) + #dinamilly adjust date based on date filter
+     
+     #geom_rug(color = "grey", alpha = 0.4) +
+     
+     annotation_custom(grob = plaIMG, xmin = 160, xmax = 254, ymin = 300, ymax = 419) +
+     
+     annotate("text", x = -250, y = 350, label = "@NBAGameDensity", color = "gray50", angle = 90) +
+     
+     coord_equal() +
+     
+     xlim(-250, 250) +
+     ylim(-50, 420) +
+     
+     xlab("") + ylab("") + labs(color = "Game Shots", fill = "Season Frequency") +
+     
+     scale_color_manual(values = c("#148f77", "#a93226"))+
+     
+     expand_limits(x = 0, y = 0) +
+     
+     theme_bw() +
+     
+     theme(panel.grid = element_blank(),
+           axis.text = element_blank(),
+           panel.border = element_rect(colour = "#212f3c", fill=NA, size=5),
+           axis.line = element_blank(),
+           axis.ticks = element_blank(),
+           panel.background = element_rect(fill = "white"),
+           panel.spacing = element_blank(),
+           legend.position= "right",
+           axis.title = element_blank(),
+           legend.title = element_text(face = "bold"),
+           legend.text = element_text(color = "gray50"))
+   
+   
+ })
+ 
+ 
+  
+  #modal where the shotcharts and filters are enclosed
+  
+  observeEvent(input$shotchart, {
+    
+    showModal(modalDialog(
+      
+      size = "l",
+      easyClose = TRUE,
+      
+      fluidRow( 
+        
+        column(width = 4,
+               
+               
+              uiOutput("team.shotchart"),
+              uiOutput("player.shotchart")
+              
+               
+        ),
+        
+        column(width = 8,
+               tags$br(),
+               plotOutput("shotchart")
+                )
+        
+      )
+      
+    ))
+  })
+  
   
   ###############################################
   
@@ -3679,11 +3851,10 @@ server <- function(input, output, session) {
   
 
 #hide loader after website is rendered####
-  Sys.sleep(6)
+  Sys.sleep(3)
   hide_waiter()
   ################################################
   
-
   
 }
 

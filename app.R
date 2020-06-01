@@ -34,1380 +34,17 @@ library(feather)
 
 ###################################################
 
-#loading data####
-data <- read_excel("NBA_Schedule.xlsx", sheet = "schedule") #schedule
-score <- read_excel("nba_scores.xlsx", sheet = "scores") #scores
-articles <- read_excel("articles.xlsx", sheet = "articles") #articles and media links
-highlights <- read_excel("highlights.xlsx", sheet = "games") %>% mutate(Date = as.Date(Date, origin = "1970-01-01")) %>% select(-Season)#video highlights
-highlights2 <- highlights %>% select(Team = Opponent, Opponent = Team, Date, Link) #video highlights for away games
-pro_file <- read_excel("profiles.xlsx") #loads profile image of players
+#import feathers####
+articles <- read_feather("article.feather")
+highlights <- read_feather("highlights.feather")
+highlights2 <- read_feather("highlights2.feather")
+pro_file <- read_feather("pro_file.feather")
 shotchart <- read_feather("shotchart.feather")
 game_logs <- read_feather("gamelogs.feather")
-
-###################################################
-
-#initial cleaning data#####
-
-dat <- data %>%
-  select(Season = SEASON, Date = DATE, Time = 3, `Away Rest` = `ROAD REST DAYS`, `Road Team` = `ROAD TEAM`, `Home Team` = `HOME TEAM`, `Home Rest` = `HOME REST DAYS`, Arena = ARENA) %>%
-  mutate(Time = hms::as_hms(Time + 18000)) %>%
-  mutate_if(~'POSIXt' %in% class(.x), as.Date) %>% filter(Season != "2016-17")
-
-sco <- score %>% 
-  select(-Time, -BX, -OT, -Notes) %>%
-  mutate_if(~'POSIXt' %in% class(.x), as.Date) %>% filter(Date > "2017-10-01")
-
-#sort out by team 
-
-###################################################
-
-#team by team cleaning####
-
-a.a <- dat %>%
-  filter(`Road Team` == "New Orleans Pelicans" | `Home Team` == "New Orleans Pelicans") %>% 
-  mutate(Team = "New Orleans Pelicans") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "New Orleans", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-a.b <- sco %>%
-  filter(Team == "New Orleans Pelicans" | Opponent == "New Orleans Pelicans") %>%
-  mutate(Team2 = ifelse(Team == "New Orleans Pelicans", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "New Orleans Pelicans", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "New Orleans Pelicans", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "New Orleans Pelicans", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a <- full_join(a.a, a.b, by = c("Team", "Date", "Opponent"))
-
-
-b.a <- dat %>%
-  filter(`Road Team` == "Los Angeles Lakers" | `Home Team` == "Los Angeles Lakers") %>% 
-  mutate(Team = "Los Angeles Lakers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Los Angeles", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-b.b <- sco %>%
-  filter(Team == "Los Angeles Lakers" | Opponent == "Los Angeles Lakers") %>%
-  mutate(Team2 = ifelse(Team == "Los Angeles Lakers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Los Angeles Lakers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Los Angeles Lakers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Los Angeles Lakers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-b <- full_join(b.a, b.b, by = c("Team", "Date", "Opponent"))
-
-
-c.a <- dat %>%
-  filter(`Road Team` == "Chicago Bulls" | `Home Team` == "Chicago Bulls") %>% 
-  mutate(Team = "Chicago Bulls") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Chicago", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-c.b <- sco %>%
-  filter(Team == "Chicago Bulls" | Opponent == "Chicago Bulls") %>%
-  mutate(Team2 = ifelse(Team == "Chicago Bulls", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Chicago Bulls", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Chicago Bulls", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Chicago Bulls", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws) 
-
-c <- full_join(c.a, c.b, by = c("Team", "Date", "Opponent"))
-
-
-d.a <- dat %>%
-  filter(`Road Team` == "Cleveland Cavaliers" | `Home Team` == "Cleveland Cavaliers") %>% 
-  mutate(Team = "Cleveland Cavaliers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Cleveland", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-
-d.b <- sco %>%
-  filter(Team == "Cleveland Cavaliers" | Opponent == "Cleveland Cavaliers") %>%
-  mutate(Team2 = ifelse(Team == "Cleveland Cavaliers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Cleveland Cavaliers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Cleveland Cavaliers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Cleveland Cavaliers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-d <- full_join(d.a, d.b, by = c("Team", "Date", "Opponent"))
-
-
-e.a <- dat %>%
-  filter(`Road Team` == "Detroit Pistons" | `Home Team` == "Detroit Pistons") %>% 
-  mutate(Team = "Detroit Pistons") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Detroit", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-
-e.b <- sco %>%
-  filter(Team == "Detroit Pistons" | Opponent == "Detroit Pistons") %>%
-  mutate(Team2 = ifelse(Team == "Detroit Pistons", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Detroit Pistons", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Detroit Pistons", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Detroit Pistons", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-e <- full_join(e.a, e.b, by = c("Team", "Date", "Opponent"))
-
-
-f.a <- dat %>%
-  filter(`Road Team` == "Boston Celtics" | `Home Team` == "Boston Celtics") %>% 
-  mutate(Team = "Boston Celtics") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Boston", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-f.b <- sco %>%
-  filter(Team == "Boston Celtics" | Opponent == "Boston Celtics") %>%
-  mutate(Team2 = ifelse(Team == "Boston Celtics", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Boston Celtics", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Boston Celtics", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Boston Celtics", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-f <- full_join(f.a, f.b, by = c("Team", "Date", "Opponent"))
-
-
-g.a <- dat %>%
-  filter(`Road Team` == "Minnesota Timberwolves" | `Home Team` == "Minnesota Timberwolves") %>% 
-  mutate(Team = "Minnesota Timberwolves") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Minnesota", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-
-g.b <- sco %>%
-  filter(Team == "Minnesota Timberwolves" | Opponent == "Minnesota Timberwolves") %>%
-  mutate(Team2 = ifelse(Team == "Minnesota Timberwolves", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Minnesota Timberwolves", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Minnesota Timberwolves", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Minnesota Timberwolves", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-g <- full_join(g.a, g.b, by = c("Team", "Date", "Opponent"))
-
-
-
-h.a <- dat %>%
-  filter(`Road Team` == "Memphis Grizzlies" | `Home Team` == "Memphis Grizzlies") %>% 
-  mutate(Team = "Memphis Grizzlies") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Memphis", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-h.b <- sco %>%
-  filter(Team == "Memphis Grizzlies" | Opponent == "Memphis Grizzlies") %>%
-  mutate(Team2 = ifelse(Team == "Memphis Grizzlies", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Memphis Grizzlies", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Memphis Grizzlies", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Memphis Grizzlies", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-h <- full_join(h.a, h.b, by = c("Team", "Date", "Opponent"))
-
-
-
-i.a <- dat %>%
-  filter(`Road Team` == "Washington Wizards" | `Home Team` == "Washington Wizards") %>% 
-  mutate(Team = "Washington Wizards") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Washington D.C.", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-i.b <- sco %>%
-  filter(Team == "Washington Wizards" | Opponent == "Washington Wizards") %>%
-  mutate(Team2 = ifelse(Team == "Washington Wizards", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Washington Wizards", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Washington Wizards", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Washington Wizards", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-i <- full_join(i.a, i.b, by = c("Team", "Date", "Opponent"))
-
-
-
-j.a <- dat %>%
-  filter(`Road Team` == "New York Knicks" | `Home Team` == "New York Knicks") %>% 
-  mutate(Team = "New York Knicks") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "New York", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-j.b <- sco %>%
-  filter(Team == "New York Knicks" | Opponent == "New York Knicks") %>%
-  mutate(Team2 = ifelse(Team == "New York Knicks", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "New York Knicks", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "New York Knicks", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "New York Knicks", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-j <- full_join(j.a, j.b, by = c("Team", "Date", "Opponent"))
-
-
-
-k.a <- dat %>%
-  filter(`Road Team` == "Oklahoma City Thunder" | `Home Team` == "Oklahoma City Thunder") %>% 
-  mutate(Team = "Oklahoma City Thunder") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Oklahoma", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-k.b <- sco %>%
-  filter(Team == "Oklahoma City Thunder" | Opponent == "Oklahoma City Thunder") %>%
-  mutate(Team2 = ifelse(Team == "Oklahoma City Thunder", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Oklahoma City Thunder", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Oklahoma City Thunder", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Oklahoma City Thunder", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-k <- full_join(k.a, k.b, by = c("Team", "Date", "Opponent"))
-
-
-l.a <- dat %>%
-  filter(`Road Team` == "Denver Nuggets" | `Home Team` == "Denver Nuggets") %>% 
-  mutate(Team = "Denver Nuggets") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Denver", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-l.b <- sco %>%
-  filter(Team == "Denver Nuggets" | Opponent == "Denver Nuggets") %>%
-  mutate(Team2 = ifelse(Team == "Denver Nuggets", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Denver Nuggets", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Denver Nuggets", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Denver Nuggets", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-l <- full_join(l.a, l.b, by = c("Team", "Date", "Opponent"))
-
-
-m.a <- dat %>%
-  filter(`Road Team` == "Sacramento Kings" | `Home Team` == "Sacramento Kings") %>% 
-  mutate(Team = "Sacramento Kings") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Sacramento", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-m.b <- sco %>%
-  filter(Team == "Sacramento Kings" | Opponent == "Sacramento Kings") %>%
-  mutate(Team2 = ifelse(Team == "Sacramento Kings", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Sacramento Kings", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Sacramento Kings", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Sacramento Kings", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-m <- full_join(m.a, m.b, by = c("Team", "Date", "Opponent"))
-
-
-
-n.a <- dat %>%
-  filter(`Road Team` == "Atlanta Hawks" | `Home Team` == "Atlanta Hawks") %>% 
-  mutate(Team = "Atlanta Hawks") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Atlanta", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-n.b <- sco %>%
-  filter(Team == "Atlanta Hawks" | Opponent == "Atlanta Hawks") %>%
-  mutate(Team2 = ifelse(Team == "Atlanta Hawks", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Atlanta Hawks", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Atlanta Hawks", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Atlanta Hawks", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-n <- full_join(n.a, n.b, by = c("Team", "Date", "Opponent"))
-
-
-
-o.a <- dat %>%
-  filter(`Road Team` == "Milwaukee Bucks" | `Home Team` == "Milwaukee Bucks") %>% 
-  mutate(Team = "Milwaukee Bucks") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Milwaukee", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-o.b <- sco %>%
-  filter(Team == "Milwaukee Bucks" | Opponent == "Milwaukee Bucks") %>%
-  mutate(Team2 = ifelse(Team == "Milwaukee Bucks", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Milwaukee Bucks", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Milwaukee Bucks", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Milwaukee Bucks", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-o <- full_join(o.a, o.b, by = c("Team", "Date", "Opponent"))
-
-
-
-p.a <- dat %>%
-  filter(`Road Team` == "Los Angeles Clippers" | `Home Team` == "Los Angeles Clippers") %>% 
-  mutate(Team = "Los Angeles Clippers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Los Angeles", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-p.b <- sco %>%
-  filter(Team == "Los Angeles Clippers" | Opponent == "Los Angeles Clippers") %>%
-  mutate(Team2 = ifelse(Team == "Los Angeles Clippers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Los Angeles Clippers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Los Angeles Clippers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Los Angeles Clippers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-p <- full_join(p.a, p.b, by = c("Team", "Date", "Opponent"))
-
-
-
-q.a <- dat %>%
-  filter(`Road Team` == "Toronto Raptors" | `Home Team` == "Toronto Raptors") %>% 
-  mutate(Team = "Toronto Raptors") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Toronto", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-q.b <- sco %>%
-  filter(Team == "Toronto Raptors" | Opponent == "Toronto Raptors") %>%
-  mutate(Team2 = ifelse(Team == "Toronto Raptors", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Toronto Raptors", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Toronto Raptors", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Toronto Raptors", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-q <- full_join(q.a, q.b, by = c("Team", "Date", "Opponent"))
-
-
-r.a <- dat %>%
-  filter(`Road Team` == "Dallas Mavericks" | `Home Team` == "Dallas Mavericks") %>% 
-  mutate(Team = "Dallas Mavericks") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Dallas", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-r.b <- sco %>%
-  filter(Team == "Dallas Mavericks" | Opponent == "Dallas Mavericks") %>%
-  mutate(Team2 = ifelse(Team == "Dallas Mavericks", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Dallas Mavericks", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Dallas Mavericks", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Dallas Mavericks", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-r <- full_join(r.a, r.b, by = c("Team", "Date", "Opponent"))
-
-
-s.a <- dat %>%
-  filter(`Road Team` == "Phoenix Suns" | `Home Team` == "Phoenix Suns") %>% 
-  mutate(Team = "Phoenix Suns") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Phoenix", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-s.b <- sco %>%
-  filter(Team == "Phoenix Suns" | Opponent == "Phoenix Suns") %>%
-  mutate(Team2 = ifelse(Team == "Phoenix Suns", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Phoenix Suns", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Phoenix Suns", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Phoenix Suns", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-s <- full_join(s.a, s.b, by = c("Team", "Date", "Opponent"))
-
-
-
-t.a <- dat %>%
-  filter(`Road Team` == "Portland Trail Blazers" | `Home Team` == "Portland Trail Blazers") %>% 
-  mutate(Team = "Portland Trail Blazers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Portland", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-t.b <- sco %>%
-  filter(Team == "Portland Trail Blazers" | Opponent == "Portland Trail Blazers") %>%
-  mutate(Team2 = ifelse(Team == "Portland Trail Blazers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Portland Trail Blazers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Portland Trail Blazers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Portland Trail Blazers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-t <- full_join(t.a, t.b, by = c("Team", "Date", "Opponent"))
-
-
-u.a <- dat %>%
-  filter(`Road Team` == "Utah Jazz" | `Home Team` == "Utah Jazz") %>% 
-  mutate(Team = "Utah Jazz") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Utah", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-u.b <- sco %>%
-  filter(Team == "Utah Jazz" | Opponent == "Utah Jazz") %>%
-  mutate(Team2 = ifelse(Team == "Utah Jazz", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Utah Jazz", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Utah Jazz", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Utah Jazz", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-u <- full_join(u.a, u.b, by = c("Team", "Date", "Opponent"))
-
-
-
-v.a <- dat %>%
-  filter(`Road Team` == "Miami Heat" | `Home Team` == "Miami Heat") %>% 
-  mutate(Team = "Miami Heat") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Miami", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-v.b <- sco %>%
-  filter(Team == "Miami Heat" | Opponent == "Miami Heat") %>%
-  mutate(Team2 = ifelse(Team == "Miami Heat", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Miami Heat", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Miami Heat", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Miami Heat", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-v <- full_join(v.a, v.b, by = c("Team", "Date", "Opponent"))
-
-
-w.a <- dat %>%
-  filter(`Road Team` == "Philadelphia 76ers" | `Home Team` == "Philadelphia 76ers") %>% 
-  mutate(Team = "Philadelphia 76ers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Philadelphia", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-w.b <- sco %>%
-  filter(Team == "Philadelphia 76ers" | Opponent == "Philadelphia 76ers") %>%
-  mutate(Team2 = ifelse(Team == "Philadelphia 76ers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Philadelphia 76ers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Philadelphia 76ers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Philadelphia 76ers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-w <- full_join(w.a, w.b, by = c("Team", "Date", "Opponent"))
-
-
-x.a <- dat %>%
-  filter(`Road Team` == "Orlando Magic" | `Home Team` == "Orlando Magic") %>% 
-  mutate(Team = "Orlando Magic") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Orlando", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-x.b <- sco %>%
-  filter(Team == "Orlando Magic" | Opponent == "Orlando Magic") %>%
-  mutate(Team2 = ifelse(Team == "Orlando Magic", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Orlando Magic", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Orlando Magic", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Orlando Magic", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-x <- full_join(x.a, x.b, by = c("Team", "Date", "Opponent"))
-
-
-y.a <- dat %>%
-  filter(`Road Team` == "Indiana Pacers" | `Home Team` == "Indiana Pacers") %>% 
-  mutate(Team = "Indiana Pacers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Indiana", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-y.b <- sco %>%
-  filter(Team == "Indiana Pacers" | Opponent == "Indiana Pacers") %>%
-  mutate(Team2 = ifelse(Team == "Indiana Pacers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Indiana Pacers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Indiana Pacers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Indiana Pacers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-y <- full_join(y.a, y.b, by = c("Team", "Date", "Opponent"))
-
-
-
-z.a <- dat %>%
-  filter(`Road Team` == "Golden State Warriors" | `Home Team` == "Golden State Warriors") %>% 
-  mutate(Team = "Golden State Warriors") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "San Francisco", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-z.b <- sco %>%
-  filter(Team == "Golden State Warriors" | Opponent == "Golden State Warriors") %>%
-  mutate(Team2 = ifelse(Team == "Golden State Warriors", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Golden State Warriors", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Golden State Warriors", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Golden State Warriors", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-z <- full_join(z.a, z.b, by = c("Team", "Date", "Opponent"))
-
-
-
-a.1.a.a <- dat %>%
-  filter(`Road Team` == "Brooklyn Nets" | `Home Team` == "Brooklyn Nets") %>% 
-  mutate(Team = "Brooklyn Nets") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "New York", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-a.1.b.b <- sco %>%
-  filter(Team == "Brooklyn Nets" | Opponent == "Brooklyn Nets") %>%
-  mutate(Team2 = ifelse(Team == "Brooklyn Nets", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Brooklyn Nets", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Brooklyn Nets", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Brooklyn Nets", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a.1 <- full_join(a.1.a.a, a.1.b.b, by = c("Team", "Date", "Opponent"))
-
-
-a.2.a.a <- dat %>%
-  filter(`Road Team` == "Charlotte Hornets" | `Home Team` == "Charlotte Hornets") %>% 
-  mutate(Team = "Charlotte Hornets") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Charlotte", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-a.2.b.b <- sco %>%
-  filter(Team == "Charlotte Hornets" | Opponent == "Charlotte Hornets") %>%
-  mutate(Team2 = ifelse(Team == "Charlotte Hornets", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Charlotte Hornets", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Charlotte Hornets", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Charlotte Hornets", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a.2 <- full_join(a.2.a.a, a.2.b.b, by = c("Team", "Date", "Opponent"))
-
-
-a.3.a.a <- dat %>%
-  filter(`Road Team` == "Houston Rockets" | `Home Team` == "Houston Rockets") %>% 
-  mutate(Team = "Houston Rockets") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Houston", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-a.3.b.b <- sco %>%
-  filter(Team == "Houston Rockets" | Opponent == "Houston Rockets") %>%
-  mutate(Team2 = ifelse(Team == "Houston Rockets", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Houston Rockets", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Houston Rockets", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Houston Rockets", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a.3 <- full_join(a.3.a.a, a.3.b.b, by = c("Team", "Date", "Opponent"))
-
-
-a.4.a.a <- dat %>%
-  filter(`Road Team` == "San Antonio Spurs" | `Home Team` == "San Antonio Spurs") %>% 
-  mutate(Team = "San Antonio Spurs") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "San Antonio", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-a.4.b.b <- sco %>%
-  filter(Team == "San Antonio Spurs" | Opponent == "San Antonio Spurs") %>%
-  mutate(Team2 = ifelse(Team == "San Antonio Spurs", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "San Antonio Spurs", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "San Antonio Spurs", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "San Antonio Spurs", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a.4 <- full_join(a.4.a.a, a.4.b.b, by = c("Team", "Date", "Opponent"))
-
-
-
-
-###################################################
-
-#create master table with all data####
-
-sche <- full_join(a,b, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(c, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(d, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(e, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(f, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(g, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(h, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(i, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(j, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(k, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(l, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(m, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(n, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(o, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(p, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(q, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(r, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(s, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(t, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(u, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(v, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(w, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(x, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(y, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(z, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(a.1, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(a.2, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(a.3, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(a.4, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  
-  #corrects a minor bug with sixers scores
-  mutate(Opp_pts = ifelse(Opp_pts > 70000, Opp_pts - 76000, 
-                          ifelse(Opp_pts %in% 7000:8000, Opp_pts - 7600, Opp_pts))) %>% 
-  mutate(Team_pts = ifelse(Team_pts > 70000, Team_pts - 76000,
-                           ifelse(Team_pts %in% 7000:8000, Team_pts - 7600, Team_pts))) %>%
-  mutate(Rest = ifelse(Rest == "3", "3+", Rest)) %>%
-  arrange(Date)
-
-###################################################
-
-#cities table with lat and lon####
-
-#coordinates for Toronto
-toronto <- c("Toronto", 43.65, -79.38)
-
-#coordinates for othet cities
-acities <- us.cities %>% 
-  filter(name == "Houston TX" | 
-           name == "Oklahoma City OK" |
-           name == "New York NY" |
-           name == "Charlotte NC" | 
-           name == "Miami FL" |
-           name == "Phoenix AZ" | 
-           name == "Salt Lake City UT" |
-           name == "Los Angeles CA" | 
-           name == "Dallas TX" |
-           name == "Milwaukee WI" | 
-           name == "Philadelphia PA" | 
-           name == "Minneapolis MN" |
-           name == "San Francisco CA" | 
-           name == "Portland OR" |
-           name == "Denver CO" |
-           name == "Sacramento CA" | 
-           name == "Boston MA" |
-           name == "Detroit MI" | 
-           name == "Memphis TN" |
-           name == "Cleveland OH" | 
-           name == "Chicago IL" |
-           name == "Atlanta GA" |
-           name == "WASHINGTON DC" |
-           name == "Indianapolis IN" |
-           name == "San Antonio TX" |
-           name == "New Orleans LA" |
-           name == "Orlando FL") %>%
-  
-  select(City = name, Latitude = lat, Longitude = long) %>%
-  
-  mutate(City = ifelse( City == "New Orleans LA", "New Orleans", 
-                        ifelse( City == "Houston TX", "Houston",
-                        ifelse( City == "Oklahoma City OK", "Oklahoma",
-                        ifelse( City == "New York NY", "New York",
-                        ifelse( City == "Charlotte NC", "Charlotte",
-                        ifelse( City == "Miami FL", "Miami",
-                        ifelse( City == "Phoenix AZ", "Phoenix",
-                        ifelse( City == "Salt Lake City UT", "Utah",
-                        ifelse( City == "Los Angeles CA", "Los Angeles",
-                        ifelse( City == "Dallas TX", "Dallas",
-                        ifelse( City == "Milwaukee WI", "Milwaukee",
-                        ifelse( City == "Philadelphia PA", "Philadelphia",
-                        ifelse( City == "Minneapolis MN", "Minnesota",
-                        ifelse( City == "San Francisco CA", "San Francisco",
-                        ifelse( City == "Portland OR", "Portland",
-                        ifelse( City == "Denver CO", "Denver",
-                        ifelse( City == "Sacramento CA", "Sacramento",
-                        ifelse( City == "Boston MA", "Boston",
-                        ifelse( City == "Detroit MI", "Detroit",
-                        ifelse( City == "Memphis TN", "Memphis",
-                        ifelse( City == "Cleveland OH", "Cleveland",
-                        ifelse( City == "Chicago IL", "Chicago",
-                        ifelse( City == "Orlando FL", "Orlando",
-                        ifelse( City == "Atlanta GA", "Atlanta",
-                        ifelse( City == "WASHINGTON DC", "Washington D.C.",
-                        ifelse( City == "Indianapolis IN", "Indiana",
-                        ifelse( City == "San Antonio TX", "San Antonio", "Toronto")))))))))))))))))))))))))))) %>%
-  rbind(toronto) %>%
-  
-  ungroup()
-
-
-
+sche <- read_feather("sche.feather")
+acities <- read_feather("acities.feather")
+Logos <- read_feather("logos.feather")
+toronto <- c("Toronto", 43.65, -79.38) #for map
 
 ##################################################
 
@@ -1418,6 +55,38 @@ df <- data.frame(val = c("Atlanta Hawks","Boston Celtics", "Brooklyn Nets", "Cha
                          "Memphis Grizzlies", "Miami Heat", "Milwaukee Bucks", "Minnesota Timberwolves", "New Orleans Pelicans", "New York Knicks", "Oklahoma City Thunder", 
                          "Orlando Magic", "Philadelphia 76ers", "Phoenix Suns", "Portland Trail Blazers", "Sacramento Kings", "San Antonio Spurs", "Toronto Raptors",
                          "Utah Jazz", "Washington Wizards"))
+
+df$img2 = c(
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/atlanta-hawks-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[1]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/boston-celtics-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[2]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/brooklyn-nets-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[3]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/charlotte-hornets-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[4]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/chicago-bulls-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[5]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/cleveland-cavaliers-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[6]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/dallas-mavericks-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[7]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/denver-nuggets-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[8]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/detroit-pistons-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[9]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/golden-state-warriors-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[10]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/houston-rockets-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[11]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/indiana-pacers-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[12]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-clippers-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[13]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-lakers-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[14]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/memphis-grizzlies-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[15]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/miami-heat-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[16]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/milwaukee-bucks-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[17]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/minnesota-timberwolves-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[18]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-orleans-pelicans-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[19]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-york-knicks-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[20]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/oklahoma-city-thunder-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[21]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/orlando-magic-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[22]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/philadelphia-76ers-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[23]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/phoenix-suns-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[24]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/portland-trail-blazers-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[25]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/sacramento-kings-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[26]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/san-antonio-spurs-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[27]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/toronto-raptors-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[28]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/utah-jazz-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[29]),
+  sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/washington-wizards-logo.png' width=45px><div class='jhr'>%s</div></img>", df$val[30]))
 
 df$img = c(
   sprintf("<img src='https://cdn.freebiesupply.com/images/thumbs/2x/atlanta-hawks-logo.png' width=30px><div class='jhr'>%s</div></img>", df$val[1]),
@@ -1453,77 +122,6 @@ df$img = c(
   
 ##################################################
 
-#Logos for opening dashboard#####
-
-Logos <- sche %>% 
-  select(Date, Team, Opponent) %>%
-  
-  mutate(Team_Logo = 
-           ifelse(Team == "Atlanta Hawks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/atlanta-hawks-logo.png' width=200px></img>", 
-           ifelse(Team == "Boston Celtics", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/boston-celtics-logo.png' width=200px></img>", 
-           ifelse(Team == "Brooklyn Nets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/brooklyn-nets-logo.png' width=200px></img>", 
-           ifelse(Team == "Charlotte Hornets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/charlotte-hornets-logo.png' width=200px></img>", 
-           ifelse(Team == "Chicago Bulls", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/chicago-bulls-logo.png' width=200px></img>", 
-           ifelse(Team == "Cleveland Cavaliers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/cleveland-cavaliers-logo.png' width=200px></img>", 
-           ifelse(Team == "Dallas Mavericks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/dallas-mavericks-logo.png' width=200px></img>", 
-           ifelse(Team == "Denver Nuggets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/denver-nuggets-logo.png' width=200px></img>", 
-           ifelse(Team == "Detroit Pistons", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/detroit-pistons-logo.png' width=200px></img>", 
-           ifelse(Team == "Golden State Warriors", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/golden-state-warriors-logo.png' width=200px></img>", 
-           ifelse(Team == "Houston Rockets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/houston-rockets-logo.png' width=200px></img>", 
-           ifelse(Team == "Indiana Pacers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/indiana-pacers-logo.png' width=200px></img>", 
-           ifelse(Team == "Los Angeles Clippers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-clippers-logo.png' width=200px></img>", 
-           ifelse(Team == "Los Angeles Lakers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-lakers-logo.png' width=200px></img>", 
-           ifelse(Team == "Memphis Grizzlies", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/memphis-grizzlies-logo.png' width=200px></img>", 
-           ifelse(Team == "Miami Heat", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/miami-heat-logo.png' width=200px></img>", 
-           ifelse(Team == "Milwaukee Bucks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/milwaukee-bucks-logo.png' width=200px></img>", 
-           ifelse(Team == "Minnesota Timberwolves", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/minnesota-timberwolves-logo.png' width=200px></img>", 
-           ifelse(Team == "New Orleans Pelicans", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-orleans-pelicans-logo.png' width=200px></img>", 
-           ifelse(Team == "New York Knicks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-york-knicks-logo.png' width=200px></img>", 
-           ifelse(Team == "Oklahoma City Thunder", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/oklahoma-city-thunder-logo.png' width=200px></img>", 
-           ifelse(Team == "Orlando Magic", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/orlando-magic-logo.png' width=200px></img>", 
-           ifelse(Team == "Philadelphia 76ers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/philadelphia-76ers-logo.png' width=200px></img>", 
-           ifelse(Team == "Phoenix Suns", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/phoenix-suns-logo.png' width=200px></img>",
-           ifelse(Team == "Portland Trail Blazers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/portland-trail-blazers-logo.png' width=200px></img>", 
-           ifelse(Team == "Sacramento Kings", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/sacramento-kings-logo.png' width=200px></img>", 
-           ifelse(Team == "San Antonio Spurs", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/san-antonio-spurs-logo.png' width=200px></img>", 
-           ifelse(Team == "Toronto Raptors", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/toronto-raptors-logo.png' width=200px></img>", 
-           ifelse(Team == "Washington Wizards", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/washington-wizards-logo.png' width=200px></img>", 
-           ifelse(Team == "Utah Jazz", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/utah-jazz-logo.png' width=200px></img>", ""))))))))))))))))))))))))))))))) %>%
-  
-  mutate(Opp_Logo = 
-           ifelse(Opponent == "Atlanta Hawks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/atlanta-hawks-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Boston Celtics", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/boston-celtics-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Brooklyn Nets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/brooklyn-nets-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Charlotte Hornets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/charlotte-hornets-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Chicago Bulls", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/chicago-bulls-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Cleveland Cavaliers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/cleveland-cavaliers-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Dallas Mavericks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/dallas-mavericks-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Denver Nuggets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/denver-nuggets-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Detroit Pistons", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/detroit-pistons-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Golden State Warriors", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/golden-state-warriors-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Houston Rockets", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/houston-rockets-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Indiana Pacers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/indiana-pacers-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Los Angeles Clippers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-clippers-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Los Angeles Lakers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/los-angeles-lakers-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Memphis Grizzlies", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/memphis-grizzlies-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Miami Heat", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/miami-heat-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Milwaukee Bucks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/milwaukee-bucks-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Minnesota Timberwolves", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/minnesota-timberwolves-logo.png' width=200px></img>", 
-           ifelse(Opponent == "New Orleans Pelicans", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-orleans-pelicans-logo.png' width=200px></img>", 
-           ifelse(Opponent == "New York Knicks", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/new-york-knicks-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Oklahoma City Thunder", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/oklahoma-city-thunder-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Orlando Magic", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/orlando-magic-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Philadelphia 76ers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/philadelphia-76ers-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Phoenix Suns", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/phoenix-suns-logo.png' width=200px></img>",
-           ifelse(Opponent == "Portland Trail Blazers", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/portland-trail-blazers-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Sacramento Kings", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/sacramento-kings-logo.png' width=200px></img>", 
-           ifelse(Opponent == "San Antonio Spurs", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/san-antonio-spurs-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Toronto Raptors", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/toronto-raptors-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Washington Wizards", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/washington-wizards-logo.png' width=200px></img>", 
-           ifelse(Opponent == "Utah Jazz", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/utah-jazz-logo.png' width=200px></img>", "")))))))))))))))))))))))))))))))
-
-##################################################
-
 #links social media buttons####
 url <- "https://twitter.com/intent/tweet?text=Check out this app to explore the density of the schedule in the NBA. @NBAGameDensity&url=https://josedv.shinyapps.io/NBASchedule/"
 url2 <- "https://josedv.shinyapps.io/NBASchedule/"
@@ -1531,8 +129,12 @@ url2 <- "https://josedv.shinyapps.io/NBASchedule/"
 
 ##################################################
 
-#User Interface
 
+
+
+
+
+#User Interface
 ##################################################
 
 ui <- dashboardPagePlus(
@@ -1684,7 +286,11 @@ ui <- dashboardPagePlus(
       tabBox(title = "", id = "tab1", height = "100%", width = "100%", 
              
       tabPanel("Game Card", icon = icon("map-marked-alt"), 
-               fluidRow(column(width = 6, uiOutput("date"))),
+               fluidRow(column(width = 6, uiOutput("date")),
+                        column(width = 6, align = "right",
+                               actionButton("gdash", label = '', icon = icon("info-circle"), style = 'color:#e74c3c; background-color:#343E48; border-color:#343E48'),
+                               bsTooltip("gdash", HTML("About This Dashboard"), placement = "left", trigger = "hover", options = NULL)
+                               )),
                
                tags$hr(),
                
@@ -1749,81 +355,112 @@ ui <- dashboardPagePlus(
                         ) #fluidrow
                         ),#tabpanel  
       
-      tabPanel("Player Load", icon = icon("charging-station"),
-            
+     
+      
+      tabPanel("Schedule Table", icon = icon("calendar-alt"), 
+               
+               
+               fluidRow(column(12, align="right",
+                               actionButton("pIndex", label = '', icon = icon("info-circle"), style = 'color:#e74c3c; background-color:#343E48; border-color:#343E48'),
+                               bsTooltip("pIndex", HTML("About Game Index"), placement = "left", trigger = "hover", options = NULL)
+               )),
+               
+               fluidRow(column(width = 12, withLoader(DT::dataTableOutput("team_table", width = "100%"), type = "html", loader = "loader1")))),
+      
+      
+      tabPanel("Rolling Density", icon = icon("chart-line"), 
+               
+               fluidRow(column(width = 12, align = "right",
+                               actionButton("denplot", label = '', icon = icon("info-circle"), style = 'color:#e74c3c; background-color:#343E48; border-color:#343E48'),
+                               bsTooltip("denplot", HTML("About This Dashboard"), placement = "left", trigger = "hover", options = NULL))),
+               
+               fluidRow(column(width = 12, withLoader(plotlyOutput("team_plot", height = "auto", width = "100%"), type = "html", loader = "loader1")))),
+      
+      
+      
+      tabPanel("Outcome", icon = icon("tasks"), 
+               
+               fluidRow(column(width = 12, align = "right",
+                               actionButton("counts", label = '', icon = icon("info-circle"), style = 'color:#e74c3c; background-color:#343E48; border-color:#343E48'),
+                               bsTooltip("counts", HTML("About This Dashboard"), placement = "left", trigger = "hover", options = NULL))),
+               
+               
+               fluidRow(style = "padding:15px",  column(width = 8, DT::dataTableOutput("w_l_table")), column(width = 4, 
+               fluidRow(DT::dataTableOutput("H_A_table")), 
+               tags$br(), 
+               tags$br(), 
+               fluidRow(DT::dataTableOutput("team_table_density"))))),
+      
+      
+      
+      tabPanel("Player Load", icon = icon("charging-station"), 
+               
                fluidRow(column(12, align="right",
                                actionButton("pLoad", label = '', icon = icon("info-circle"), style = 'color:#e74c3c; background-color:#343E48; border-color:#343E48'),
                                bsTooltip("pLoad", HTML("About Player Load"), placement = "left", trigger = "hover", options = NULL)
-                               )),
-                               
+               )),
+               
                tags$br(),
                
                fluidRow(column(width = 12,
-                  
-               boxPlus(
-                 title = "Full Roster", 
-                 closable = F, 
-                 enable_label = F,
-                 status = "info", 
-                 collapsible = TRUE,
-                 solidHeader = F,
-                 enable_sidebar = F,
-                 collapsed = TRUE,
-                 width = NULL,
-                
-               p(
-               
-               fluidRow(column(width = 12, withLoader(plotOutput("player_load", width = "100%", height = '750px'),type = "html", loader = "loader1")))
-               
-               )))),
+                               
+                               boxPlus(
+                                 title = "Full Roster", 
+                                 closable = F, 
+                                 enable_label = F,
+                                 status = "info", 
+                                 collapsible = TRUE,
+                                 solidHeader = F,
+                                 enable_sidebar = F,
+                                 collapsed = TRUE,
+                                 width = NULL,
+                                 
+                                 p(
+                                   
+                                   fluidRow(column(width = 12, withLoader(plotOutput("player_load", width = "100%", height = '750px'),type = "html", loader = "loader1")))
+                                   
+                                 )))),
                
                fluidRow(column(width = 12,
-                 
-               boxPlus(
-                 title = "Individual Player Load", 
-                 closable = F, 
-                 width = NULL,
-                 enable_label = F,
-                 status = "info", 
-                 solidHeader = FALSE, 
-                 collapsible = TRUE,
-                 collapsed = FALSE,
-                 enable_sidebar = FALSE,
-                 
-                 p(
-                   
-                   
-                   column(width = 2,
-                   fluidRow(uiOutput("player_image")),
-                   fluidRow(uiOutput("playerLoad.filter")),
-                   tags$br(),
-                   tags$br(),
-                   fluidRow(uiOutput("last.n.filter")),
-                   fluidRow(DT::dataTableOutput("playerLoad.table"))
-                   ),
-                   
-                   column(width = 10,
-                          plotlyOutput("player.load.trend", width = "100%", height = '750px')
-                          )
-                   
-                   
-                   
-                 )
-               
-               
-               )
-               
-               ))),
+                               
+                               boxPlus(
+                                 title = "Individual Player Load", 
+                                 closable = F, 
+                                 width = NULL,
+                                 enable_label = F,
+                                 status = "info", 
+                                 solidHeader = FALSE, 
+                                 collapsible = TRUE,
+                                 collapsed = FALSE,
+                                 enable_sidebar = FALSE,
+                                 
+                                 p(
+                                   
+                                   
+                                   column(width = 2,
+                                          fluidRow(uiOutput("player_image")),
+                                          fluidRow(uiOutput("playerLoad.filter")),
+                                          tags$br(),
+                                          tags$br(),
+                                          fluidRow(uiOutput("last.n.filter")),
+                                          fluidRow(DT::dataTableOutput("playerLoad.table"))
+                                   ),
+                                   
+                                   column(width = 10,
+                                          plotlyOutput("player.load.trend", width = "100%", height = '750px')
+                                   )
+                                   
+                                   
+                                   
+                                 )
+                                 
+                                 
+                               )
+                               
+               )))
       
-      tabPanel("Schedule Table", icon = icon("calendar-alt"), fluidRow(column(width = 12, withLoader(DT::dataTableOutput("team_table", width = "100%"), type = "html", loader = "loader1")))),
-      tabPanel("Rolling Density", icon = icon("chart-line"), fluidRow(column(width = 12, withLoader(plotlyOutput("team_plot", height = "auto", width = "100%"), type = "html", loader = "loader1")))),
-      tabPanel("Outcome", icon = icon("tasks"), fluidRow(style = "padding:15px", 
-                                                         column(width = 8, DT::dataTableOutput("w_l_table")), 
-                                                         column(width = 4, 
-                                                fluidRow(DT::dataTableOutput("H_A_table")), 
-                                                           tags$br(), 
-                                                           tags$br(), 
-                                                fluidRow(DT::dataTableOutput("team_table_density")))))
+      
+      
     )#tabbox
     
     ),#tabitem
@@ -1832,6 +469,7 @@ ui <- dashboardPagePlus(
     tabItem(
       tabName = "allteams",
       tabBox(title = "", id = "tab2", height = "100%", width = "100%",
+             
              tabPanel("Density Counts", icon = icon("list-alt"), 
                       
                       fluidRow(column(width = 4,
@@ -1846,9 +484,40 @@ ui <- dashboardPagePlus(
                         )),
                       
              fluidRow(column(width = 12, withLoader(DT::dataTableOutput("all_teams", width = "100%"), type = "html", loader = "loader1")))),
+             
              tabPanel("Heatmap", icon = icon("solar-panel"), 
-                      fluidRow(column(width = 4, uiOutput("by.team"))),
-                      fluidRow(column(width = 12, withLoader(plotOutput("heatmap", width = "100%", height = '750px'),type = "html", loader = "loader1"))))
+                      
+                      fluidRow(column(width = 4, uiOutput("by.team")),
+                               column(width = 8, align = "right",
+                                      actionButton("hmap", label = '', icon = icon("info-circle"), style = 'color:#e74c3c; background-color:#343E48; border-color:#343E48'),
+                                      bsTooltip("hmap", HTML("More About Heatmaps"), placement = "left", trigger = "hover", options = NULL)
+                                      )),
+                      
+                      fluidRow(column(width = 12, withLoader(plotOutput("heatmap", width = "100%", height = '750px'),type = "html", loader = "loader1")))),
+             
+             tabPanel("Player Loads", icon = icon("charging-station"),
+                      
+                      fluidRow(
+                      
+                      column(width = 2, uiOutput("team.filter2")),
+                      column(width = 2, uiOutput("month.filter")),
+                      column(width = 2, uiOutput("week.filter")),
+                      column(width = 2, uiOutput("metric.filter")),
+                      #column(width = 2, uiOutput("top.rows.filter"))
+                      column(width = 4, align = "right",
+                             actionButton("player_loads", label = '', icon = icon("info-circle"), style = 'color:#e74c3c; background-color:#343E48; border-color:#343E48'),
+                             bsTooltip("player_loads", HTML("About This Table"), placement = "left", trigger = "hover", options = NULL))
+                      ),
+                      
+                      fluidRow(
+                      column(width = 12, DT::dataTableOutput("all.player.load"))
+                      
+                      )
+                      
+                      
+             )
+             
+             
       )#tabbox
   ),#tabitem
   
@@ -2071,13 +740,14 @@ ui <- dashboardPagePlus(
 ##################################################
 
 
-#Server Logic. 
 
+
+
+
+#Server Logic. 
 ##################################################
 
-
 server <- function(input, output, session) {
-  
   
 #shinyalert after changing moving average value#####
   
@@ -2118,10 +788,14 @@ server <- function(input, output, session) {
         tags$img(src = "https://image.flaticon.com/icons/svg/747/747938.svg", width = "40px", height = "40px", align = "left"),
         p("There are various options throughout the app to compare a team density index vs the rivals.", style = "padding-left:3em; font-family: Arial; color: white"),
         tags$br(),
+        tags$h4("Player Load", style = "padding-left:2.3em; font-family: Arial; color: white"),
+        tags$img(src = "https://image.flaticon.com/icons/svg/1265/1265301.svg", width = "40px", height = "40px", align = "left"),
+        p("Information about individual player loads accounting for factors including rest days and minutes playes.", style = "padding-left:3em; font-family: Arial; color: white"),
+        tags$br(),
         tags$hr(),
         HTML(paste(tags$span("If you have any feedback please get in touch via", style = "font-family: Arial; color: white"), tags$span(tags$a(href= "https://twitter.com/NBAGameDensity", "Twitter.")))),
         
-        
+        size = "l",
         easyClose = TRUE)
       
     )#showmodal
@@ -2251,13 +925,15 @@ server <- function(input, output, session) {
       
       mutate(Normalized = ifelse(is.na(index), 0, round((index-min(index))/(max(index)-min(index)), 2))) %>%
       
+      mutate(Normalized = Normalized * 100) %>%
+      
       select(Season, Month, Date, Location, City, Arena, Team, Opponent, Team_pts, Opp_pts, Density = Rest, Normalized) %>%
       
       #
       
       group_by(Team) %>%
       
-      mutate(MovIndex = round(roll_meanr(Normalized, n = input$rolling, align = "right", fill = 0, na.rm = T),2))
+      mutate(MovIndex = round(roll_meanr(Normalized, n = input$rolling, align = "right", fill = 0, na.rm = T),1))
     
   })
   
@@ -2571,8 +1247,53 @@ server <- function(input, output, session) {
   
   ################################################
  
+###game card tab############
   
-  #game card tab############
+  #help pop up modal
+  
+  observeEvent(input$gdash, {
+    
+    
+    showModal(
+      
+      modalDialog(
+        
+        tags$h3("Game Dashboard", style = "font-family: Arial; color: white"),
+        tags$hr(),
+        tags$br(),
+        tags$h5("After selecting a season and a team of interest, the date filter will allow users to select specific games.", style = "font-family: Arial; color: white"),
+        tags$br(),
+        tags$br(),
+        tags$h5("This dashboard provides the following metrics for each team:", style = "font-family: Arial; color: white"),
+        tags$br(),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Team Names: "), "Teams taking part in the game."))),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Winning %: "), "Overall winning % for each team on the selected season."))),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Location: "), "Home and Away."))),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Game Score: "), "Including a green dynamic tag highlighting the game winner."))),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Game Profile: "), "Type of game for each team based on rest days, i.e: 1 Rest Day, 2 Rest Days, 3 Rest Days, B2B, 3in4 or 3in4-B2B."))),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Game Index: "), "A schedule density score accounting for different factors. (see schedule density tab for more info)."))),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Moving Index: "), "A rolling average of the game index. Users can decide the number of rolling games."))),
+        tags$br(),
+        tags$h5("The game index factors described above can be adjusted by users using the inputs in the right side bar of the website which is accsible via the 'cogs' icon 
+                on the top right part of the header", style = "font-family: Arial; color: white"),
+        tags$br(),
+        tags$h4("Further Functionalities:", style = "font-family: Arial; color: white"),
+        tags$hr(),
+        tags$h5(HTML(paste(tags$span(style="color: green", "Box Scores Button: "), "Basic Games stats. Also includes information on Game Loads for each player."))),
+        tags$h5(HTML(paste(tags$span(style="color: lightseagreen", "Shot Charts: "), "Shot Chart for each player in the game."))),
+        tags$h5(HTML(paste(tags$span(style="color: red", "Video HighLights: "), "For most games, video highlights are available."))),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Travel Route: "), "Visual display highlighting travel routes for the selected team prior to a game."))),
+        tags$br(),
+        
+        size = "l",
+        
+        easyClose = TRUE)
+      
+      )#showmodal
+    
+    
+  })#observeEvent 
+  
   
   #filter for the tab 
   output$date <- renderUI({
@@ -3315,7 +2036,15 @@ server <- function(input, output, session) {
     mutate(Load = as.numeric(Load)) %>%    
     arrange(desc(Load)) %>%
      
-    formattable::formattable()
+    formattable::formattable(list(
+      
+      `Rest (days)` = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "0", "#f04d43", 
+                                                                                            ifelse(x == "1", "#f68235",
+                                                                                            ifelse(x == "2", "#faaf18",
+                                                                                            ifelse(x == "3", "#b2ba35",
+                                                                                            ifelse(x == "4", "#2ea8c7", "#82eefd")))))))
+      
+    ))
    
    
         as.datatable(ggLog, 
@@ -3330,9 +2059,9 @@ server <- function(input, output, session) {
         
         formatStyle('Player', fontWeight = 'bold', backgroundColor = 'rgb(52,62,72)', color = "ivory") %>%
         formatStyle('Photo', backgroundColor = 'rgb(52,62,72)') %>%
-        formatStyle('Rest (days)', backgroundColor = 'rgb(52,62,72)') %>%
+        formatStyle('Rest (days)', backgroundColor = 'rgb(52,62,72)', fontWeight = 'bold') %>%
         #formatStyle('Load', backgroundColor = 'rgb(52,62,72)', fontWeight = 'bold', color = "ivory") %>%
-        formatStyle('Load', backgroundColor = styleInterval(brks, clrs), color = "black") %>%
+        formatStyle('Load', backgroundColor = styleInterval(brks, clrs), color = "black", fontWeight = 'bold') %>%
           
         formatStyle('FG (%)', backgroundColor = 'rgb(52,62,72)') %>%
         formatStyle('FG2 (%)', backgroundColor = 'rgb(52,62,72)') %>%
@@ -3346,7 +2075,7 @@ server <- function(input, output, session) {
         formatStyle('BLK', backgroundColor = 'rgb(52,62,72)') %>%
         formatStyle('TOV', backgroundColor = 'rgb(52,62,72)') %>%
         formatStyle('PF', backgroundColor = 'rgb(52,62,72)') %>%
-        formatStyle('MINS', backgroundColor = 'rgb(52,62,72)') %>%
+        formatStyle('MINS', backgroundColor = 'rgb(52,62,72)', fontWeight = 'bold') %>%
         formatStyle('PTS', backgroundColor = 'rgb(52,62,72)', color = "ivory", fontWeight = 'bold') %>%
         formatStyle('+/-', backgroundColor = 'rgb(52,62,72)', color = "ivory", fontWeight = 'bold') %>%
         
@@ -3436,7 +2165,7 @@ server <- function(input, output, session) {
   
   ################################################
   
-  #Player Load Tab####
+###Player Load Tab####
     
   #help pop up modal
     
@@ -3538,7 +2267,7 @@ server <- function(input, output, session) {
         select(Player, Photo) %>%
         filter(Player == input$playerLoad_filter) %>%
         unique() %>%
-        mutate(photo = paste("<img src='", Photo, "' width=300px></img>", sep = ""))
+        mutate(photo = paste("<img src='", Photo, "' width=100%></img>", sep = ""))
       
       HTML(a$photo)
       
@@ -3678,7 +2407,57 @@ server <- function(input, output, session) {
     
   ################################################
   
-  #schedule table tab####
+####schedule table tab####
+    
+    
+    #help pop up modal
+    
+    observeEvent(input$pIndex, {
+      
+      
+      showModal(
+        
+        modalDialog(
+          
+          tags$h3("How is Game Density Index Calculated?", style = "font-family: Arial; color: white"),
+          tags$hr(),
+          tags$br(),
+          tags$h5("Game index is a schedule density score that ranges between 0 - 100. The higher the number, the more 'schedule stress' for a given game.", style = "font-family: Arial; color: white"),
+          tags$br(),
+          img(src = "density.png", style = "text-align: center;"),
+          tags$br(),
+          tags$br(),
+          tags$h5("Game index accounts for the following parameters:", style = "font-family: Arial; color: white"),
+          tags$br(),
+          tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Location: "), "Home or Away."))),
+          tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Prior Travel: "), "Did the team travel prior to a game?."))),
+          tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Travel Direction: "), "Eastbound, Westbound or Neutral (North/South without time zone changes)."))),
+          tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Time Shift Factor: "), "Number of time zones crossed."))),
+          tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Elapsed Days: "), "Days since last game."))),
+          tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Game Type: "), "Game profile based on 1 Rest Day, 2 Rest Days, 3 Rest Days, B2B, 3in4 or 3in4-B2B."))),
+          tags$br(),
+          tags$h5("Users can adjust any of the above factors by using the inputs in the right side bar of the website which is accesiable via the 'cogs' icon 
+                  on the top right part of the header", style = "font-family: Arial; color: white"),
+          tags$br(),
+          tags$br(),
+          tags$h4("Moving Index", style = "font-family: Arial; color: white"),
+          tags$hr(),
+          tags$h5("Moving Index is a rolling average of the Game Index score.", style = "font-family: Arial; color: white"),
+          tags$br(),
+          tags$h5("It is set to seven days by default, but users are able to adjust this parameter between 1 and 30 days.", style = "font-family: Arial; color: white"), 
+          tags$br(),
+          
+          size = "l",
+          
+          easyClose = TRUE)
+        
+      )#showmodal
+      
+      
+    })#observeEvent 
+    
+    
+    
   output$team_table <- DT::renderDataTable({
     
     a <- sche2() %>% 
@@ -3755,8 +2534,44 @@ server <- function(input, output, session) {
   
   ################################################
   
-#plot tab#####
+####plot tab#####
   
+  #help pop up modal
+  
+  observeEvent(input$denplot, {
+    
+    
+    showModal(
+      
+      modalDialog(
+        
+        tags$h3("Moving Density Plot", style = "font-family: Arial; color: white"),
+        tags$hr(),
+        tags$br(),
+        tags$h5("A comparison of the moving index for the selected team as well as the opponent.", style = "font-family: Arial; color: white"),
+        tags$br(),
+        tags$br(),
+        tags$h5("There are 3 different elements in this chart:", style = "font-family: Arial; color: white"),
+        tags$br(),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Line Chart: "), "Game to game rolling index for the selected team (orange) vs the opponent teams (blue)"))),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Season Boxplots: "), "A boxplot chart showing the distribution of the rolling density index for the whole season, comparing the selected team vs its opponents."))),
+        tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Game Outcome Ticks: "), "The ticks are the bottom of the chart will be green if the selected team wins that game."))),
+        tags$br(),
+        tags$h5("The chart updates every time the user changes the length of the moving window on the right sidebar menu.", style = "font-family: Arial; color: white"),
+        
+        size = "m",
+        
+        easyClose = TRUE)
+      
+      )#showmodal
+    
+    
+  })#observeEvent 
+  
+  
+  
+  
+  #plot
   output$team_plot <- renderPlotly({
     
     
@@ -3810,7 +2625,33 @@ server <- function(input, output, session) {
   
   ################################################
   
-#comparison of wins by game time tab###########
+####comparison of wins by game time tab###########
+  
+  #help pop up modal
+  
+  observeEvent(input$counts, {
+    
+    
+    showModal(
+      
+      modalDialog(
+        
+        tags$h3("Count Tables", style = "font-family: Arial; color: white"),
+        tags$hr(),
+        tags$br(),
+        tags$h5("These tables provide summary counts for different situations in the season for the selected team. Where appropriate, counts are split by game outcomes.", style = "font-family: Arial; color: white"),
+        tags$br(),
+        
+        
+        size = "s",
+        
+        easyClose = TRUE)
+      
+    )#showmodal
+    
+    
+  })#observeEvent 
+  
   
   output$w_l_table <- DT::renderDataTable({
   
@@ -4052,7 +2893,7 @@ server <- function(input, output, session) {
   
   ###############################################
   
-  # comparison of wins by Location#######
+  #comparison of wins by Location#######
   
   output$H_A_table <- DT::renderDataTable({
   
@@ -4173,9 +3014,9 @@ server <- function(input, output, session) {
   ###############################################
   
 #all teams tab
-  ###############################################
+#################################################
   
-  #density table tab#######
+###density table tab#######
   
   output$all_teams <- DT::renderDataTable({
     
@@ -4229,7 +3070,37 @@ server <- function(input, output, session) {
 
   ###############################################
   
-  #heatmap####  
+####heatmap####  
+  
+  #help pop up modal
+  
+  observeEvent(input$hmap, {
+    
+    
+    showModal(
+      
+      modalDialog(
+        
+        tags$h3("Moving Density Heat Maps", style = "font-family: Arial; color: white"),
+        tags$hr(),
+        tags$br(),
+        tags$h5("These heatmaps enable users to visualize all team's moving density scores at once.", style = "font-family: Arial; color: white"),
+        tags$br(),
+        tags$h5("This makes it easier to spot patterns and identify periods of higher and lower schedule density for each team", style = "font-family: Arial; color: white"),
+        tags$br(),
+        tags$h5("Lower scores are displayed as green, while colours become more red as the schedule density increases.", style = "font-family: Arial; color: white"),
+        tags$br(),
+        tags$h5("The length of the moving window can be adjusted using the appropriate input on the right side bar.", style = "font-family: Arial; color: white"),
+        tags$br(),
+        
+        size = "m",
+        
+        easyClose = TRUE)
+      
+    )#showmodal
+    
+    
+  })#observeEvent 
     
   #heatmap filter to select by team or by opponent
     
@@ -4266,7 +3137,7 @@ server <- function(input, output, session) {
       filter(ID > input$rolling) %>%
       ungroup() %>%
       mutate(Team = as.factor(Team)) %>%
-      mutate(movIndex = ifelse(movIndex == 0, 0.4, movIndex))
+      mutate(movIndex = ifelse(movIndex == 0, 40, movIndex))
     
  ggplot(a, aes(x=reorder(ID, Team), y = Team, fill = movIndex)) +
     geom_tile(colour="#273746",size=0.25) +
@@ -4300,7 +3171,236 @@ server <- function(input, output, session) {
   
   ###############################################
   
+
+####all players load####
+  
+  #team filter
+  output$team.filter2 <- renderUI ({
+    
+    pickerInput(
+      inputId = "team_filter2",
+      label = "Select Team(s)", 
+      choices = df$val,
+      choicesOpt = list(style = rep(("color: black; background: white"),30), content = df$img),
+      options = list(`actions-box` = TRUE,  `selected-text-format` = "count > 2"),
+      selected = c("Atlanta Hawks","Boston Celtics", "Brooklyn Nets", "Charlotte Hornets", "Chicago Bulls", "Cleveland Cavaliers", "Dallas Mavericks",
+                   "Denver Nuggets", "Detroit Pistons", "Golden State Warriors", "Houston Rockets", "Indiana Pacers", "Los Angeles Clippers", "Los Angeles Lakers",
+                   "Memphis Grizzlies", "Miami Heat", "Milwaukee Bucks", "Minnesota Timberwolves", "New Orleans Pelicans", "New York Knicks", "Oklahoma City Thunder", 
+                   "Orlando Magic", "Philadelphia 76ers", "Phoenix Suns", "Portland Trail Blazers", "Sacramento Kings", "San Antonio Spurs", "Toronto Raptors",
+                   "Utah Jazz", "Washington Wizards"),
+      multiple = T)
+    
+  })
+  
+  #month filter
+  output$month.filter <- renderUI ({
+    
+    choices <- game_logs %>%
+      filter(Season == input$season_filter) %>%
+      mutate(Month = lubridate::month(Date)) %>%
+      
+      mutate(Month = ifelse(Month == 1, 'January',
+                            ifelse(Month == 2, 'February',
+                                   ifelse(Month == 3, 'March',
+                                          ifelse(Month == 4, 'April',
+                                                 ifelse(Month == 5, 'May',
+                                                      ifelse(Month == 6, 'May',
+                                                        ifelse(Month == 10, 'October',
+                                                               ifelse(Month == 11, 'November', 'December'))))))))) %>% select(Month)
+    
+    pickerInput(
+      inputId = "month_filter",
+      label = "Select Month(s)", 
+      choices = choices$Month %>% unique(),
+      options = list(`actions-box` = TRUE,  `selected-text-format` = "count > 3"),
+      selected = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"),
+      multiple = T)
+    
+  })
+  
+  
+  #week filter
+  output$week.filter <- renderUI ({
+    
+    choices <- game_logs %>%
+      filter(Season == input$season_filter) %>%
+      mutate(Month = lubridate::month(Date)) %>%
+      
+      mutate(Month = ifelse(Month == 1, 'January',
+                            ifelse(Month == 2, 'February',
+                                   ifelse(Month == 3, 'March',
+                                          ifelse(Month == 4, 'April',
+                                                 ifelse(Month == 5, 'May',
+                                                        ifelse(Month == 6, 'May',
+                                                               ifelse(Month == 10, 'October',
+                                                                      ifelse(Month == 11, 'November', 'December'))))))))) %>%
+      mutate(Week = lubridate::week(Date)) %>%
+      
+      filter(Month %in% input$month_filter) %>%
+      
+      select(Month, Week)
+    
+    pickerInput(
+      inputId = "week_filter",
+      label = "Select Week(s) Number", 
+      choices = choices$Week %>% unique(),
+      options = list(`actions-box` = TRUE,  `selected-text-format` = "count > 5"),
+      selected = 1:55,
+      multiple = T)
+    
+  })
+  
+  #filter top N rows
+  #output$top.rows.filter <- renderUI ({
+    
+    
+  #  pickerInput(
+  #    inputId = "row_filter",
+  #    label = "Select N Top Rows", 
+  #    choices = 1:600,
+  #    options = list(`actions-box` = TRUE,  `selected-text-format` = "count > 5"),
+  #    selected = 1:600,
+  #    multiple = F)
+    
+  #})
+  
+  
+  #filter metric
+  output$metric.filter <- renderUI ({
+    
+    
+    pickerInput(
+      inputId = "metric_filter",
+      label = "Order by Metric", 
+      choices = c("Total Load" = "totalLoad", "avg Load" = "avgLoad", "Total Mins" = "totalMins", "avg Mins" = "avgMins", "Games", "B2B", "Participation"),
+      selected = "totalLoad",
+      multiple = F)
+    
+  })
+  
+  
+  #player load table
+  
+ output$all.player.load <- DT::renderDataTable({
+   
+   
+   weekLoad <- game_logs %>%
+     filter(Season == input$season_filter) %>%
+     filter(Team %in% input$team_filter2) %>%
+     mutate(Month = lubridate::month(Date), Week = lubridate::week(Date)) %>%
+     
+     mutate(Month = ifelse(Month == 1, 'January',
+                           ifelse(Month == 2, 'February',
+                                  ifelse(Month == 3, 'March',
+                                         ifelse(Month == 4, 'April',
+                                                ifelse(Month == 5, 'May',
+                                                       ifelse(Month == 10, 'October',
+                                                              ifelse(Month == 11, 'November', 'December')))))))) %>%
+     filter(Month %in% input$month_filter) %>%
+     filter(Week %in% input$week_filter) %>%
+     group_by(Team, Player) %>%
+     mutate(Date2 = lag(Date)) %>%
+     mutate(dates = Date - Date2) %>% 
+     mutate(B2B = ifelse(is.na(dates), 0, ifelse(dates == 1, 1, 0))) %>%
+     summarise(Games = n(), totalMins = sum(MINS), avgMins = round(mean(MINS),1), avgLoad = round(mean(Load),1), totalLoad = sum(Load), B2B = sum(B2B), Participation = mean(Participation)) %>%
+     select(Team, Player, totalLoad, avgLoad, totalMins, avgMins, Games, B2B, Participation) %>%
+     
+     ungroup()
+   
+   photo <- game_logs %>% distinct(Player, Photo)
+   logs <- df %>% mutate(Team = val) %>% select(-val, -img)
+   
+   table <- full_join(weekLoad, photo, by = c("Player")) %>% 
+     full_join(logs, by = c("Team")) %>%
+     na.omit() %>%
+     arrange(desc(totalLoad, avgLoad, totalMins, Games)) %>%
+     select(-Team) %>%
+     select(Photo, Player, totalLoad, avgLoad, totalMins, avgMins, Games, B2B, Participation, Team = img2) %>%
+     mutate(Photo = paste('<img src =',' "', Photo,'" ', 'height="45"></img>', sep = ""))
+     
+     table2 <- dplyr::arrange_(table, lazyeval::interp(~desc(var), 
+                                       var = as.name(input$metric_filter))) %>%
+     
+   
+     #top_n(as.numeric(input$row_filter), input$metric_filter) %>%
+   
+     formattable::formattable()
+   
+   formattable::as.datatable(table2, 
+                             rownames = FALSE,
+                             escape = F,
+                             extensions = 'Responsive',
+                             colnames = c("Photo", "Player", "Total Load", "avg Load", "Total Mins", "avg Mins", "Games", "B2B", "Participation (%)","Team"),
+                             options = list(dom = 'pt',
+                                            pageLength = 100,
+                                            bSort=F,
+                                            columnDefs = list(list(className = 'dt-center', targets = 0:8)),
+                                            initComplete = JS(
+                                              "function(settings, json) {",
+                                              "$(this.api().table().header()).css({'background-color': '#17202a', 'color': 'ivory'});",
+                                              "}"))) %>%
+     
+     formatStyle('Team', backgroundColor =  'rgb(52,62,72)') %>%
+     formatStyle('Photo', backgroundColor =  'rgb(52,62,72)') %>%
+     formatStyle('Player', backgroundColor =  'rgb(52,62,72)') %>%
+     formatStyle('totalLoad', backgroundColor =  'rgb(52,62,72)') %>%
+     formatStyle('avgLoad', backgroundColor =  'rgb(52,62,72)') %>%
+     formatStyle('totalMins', backgroundColor =  'rgb(52,62,72)') %>%
+     formatStyle('avgMins', backgroundColor =  'rgb(52,62,72)') %>%
+     formatStyle('Games', backgroundColor =  'rgb(52,62,72)') %>%
+     formatStyle('B2B', backgroundColor =  'rgb(52,62,72)') %>%
+     formatStyle('Participation', backgroundColor =  'rgb(52,62,72)') %>%
+     
+     formatStyle(c(2, 4, 6, 9, 10), `border-right` = "solid 2px")
+   
+ })
+ 
+ 
+ #help pop up modal
+ 
+ observeEvent(input$player_loads, {
+   
+   
+   showModal(
+     
+     modalDialog(
+       
+       tags$h3("Overall Player Load Summary", style = "font-family: Arial; color: white"),
+       tags$hr(),
+       tags$br(),
+       tags$h5("This table provides a summary of different load related metrics. Several drill-down menus are provided for users to slice and explore the data in different ways.", style = "font-family: Arial; color: white"),
+       tags$br(),
+       tags$br(),
+       tags$h5("The main load parameters shown on the table are:", style = "font-family: Arial; color: white"),
+       tags$br(),
+       tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Total Load: "), "The sum of the Load for each game the player participated in during the selected period."))),
+       tags$br(),
+       tags$h5(HTML(paste(tags$span(style="color: #FFA500", "avg Load: "), "The average of the Load for each game the player participated in during the selected period."))),
+       tags$br(),
+       tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Total Mins: "), "Total minutes played during the selected period."))),
+       tags$br(),
+       tags$h5(HTML(paste(tags$span(style="color: #FFA500", "avg Mins: "), "Minutes played per game in the selected period."))),
+       tags$br(),
+       tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Games: "), "Total number of games the player took part in during the period selected."))),
+       tags$br(),
+       tags$h5(HTML(paste(tags$span(style="color: #FFA500", "B2B: "), "Games of type B2B in the selected period."))),
+       tags$br(),
+       tags$h5(HTML(paste(tags$span(style="color: #FFA500", "Participation (%): "), "Percentage of games the player took part in during the selected season."))),
+       
+       size = "l",
+       
+       easyClose = TRUE)
+     
+     )#showmodal
+   
+   
+ })#observeEvent 
+  
+  ###############################################
+  
+  
 #reading material tab
+#################################################
   
   #reactive to show number of items selected on filter####
   art1 <- reactive({articles %>% 
@@ -4362,13 +3462,14 @@ server <- function(input, output, session) {
     
   })
   
+  
   ###############################################
   
 
 #hide loader after website is rendered####
   Sys.sleep(3)
   hide_waiter()
-  ###############################################
+#################################################
   
   
 }

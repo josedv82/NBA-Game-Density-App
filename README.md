@@ -42,6 +42,14 @@ Furthermore, a link to watch the **game highlights** is provided. Currently, mor
 
 ![](https://www.dropbox.com/s/8l3nslpq7jj87b6/frontpage.png?raw=1)
 
+Likewise, **boxscores** for each game are available for both, the selected them and the oponent. Individual game loads are provided along with common game stats for different aspects of the game.
+
+![](https://www.dropbox.com/s/1kki6whnxez7gdn/boxscore.png?raw=1)
+
+Finally, users whishing to visualize **shotcharts** for every player/game can do that from the GameCard View. Upon selecting a player, the shot chart will highlight shots made/missed, the locations on the court. The court will have different degrees of shadows to highlight what are the most commong shooting locations for each player/season.
+
+![](https://www.dropbox.com/s/kzk34afmbjeajwv/shotchart.png?raw=1)
+
 ##### Schedule Table
 A dynamic table showing full season metrics. Different metrics are reported on this table, using color codes to alert users about the magnitude of the parameters. Users can compare differences in metrics between the selected team and the opponents they are facing throughout the season.
 
@@ -59,6 +67,13 @@ The second table (right) simply summarises the number of wins and losses by loca
 
 ![](https://www.dropbox.com/s/bb9y2fma0ekdw3z/outcome.png?raw=1)
 
+#### Player Load Tab
+Player Load is an arbitrary score calculated based on how many rest days a player had prior to a game as well as the total number of minutes the player was on the court. Based on those two parameters an overall load metric is calculated. The **Player Load** tab enables users to explore longitudinal load trends for each player. 
+
+![](https://www.dropbox.com/s/tqoytpq6gchj0sd/playerLoad.png?raw=1)
+
+A dynamic search filter is available enabling users to select number of last games and provide cummulative load metrics for those.
+
 #### All Teams Item
 The all teams item provides a summary table counting all types of density for each team for each season. Users can filter by "away games", "home games" or both.
 
@@ -68,21 +83,39 @@ The Heatmap tab shows rolling index for each team for the whole season, enabling
 
 ![](https://www.dropbox.com/s/9anz1wz0eih6apq/heatmap.png?raw=1)
 
+#### Player Load Table
+The **Player Load** table enables league wide comparisons all load related metrics for all players in the season. A variety of filtering options are available at the top for users to slice and filter their data based on their preferences.
+
+![](https://www.dropbox.com/s/5gobdig5zjmdwk8/playerLoadtable.png?raw=1)  
+
+
+#### Research / Media Item
+This part of the app contains a dynamic table showing NBA travel and density related research and media articles. While this research is independent from the author of this website, we thought it may be of interest for users wanting to learn more about how different factors related to schedule density may affect performance and injuries. 
+
+All articles listed on the table contained a link that users can follow to reach the original text. New articles (if available) are uploaded monthly. 
+
+![](https://www.dropbox.com/s/sn7yobimrytpqex/research.png?raw=1)
+
 Potentially further reports will be implemented.
 
-#### Game Index Metric and Right Side Bar
+## Game Index Metric and Right Side Bar
 Game Index is a metric that provides information about potential travel/schedule stress a team might be undergoing (note this metric is arbitrary and has not been validated). It is a composite score accounting for several factors such as rest days between games, travels prior to game, direction of travel, time zones crossed, accumulated density, game location. Rather than setting fixed weights for each parameters used to calculate overall game index, we provide options for users to manipulate each parameters based on their own preferences.
 
 ![](https://www.dropbox.com/s/mt8hpdwk1s224fj/rightbar.png?raw=1)
 
 Users can also opt to look at a moving average of the Index metric for 'x' number of games. The last tab on the right side bar provides this option.
 
-![](https://www.dropbox.com/s/s4v7y7i3a3jd28d/knob.png?raw=1)
+![](https://www.dropbox.com/s/s4v7y7i3a3jd28d/knob.png?raw=1)  
+
 
 ## Data
 The data used to create this app was downloaded from [BigDataBall](https://www.bigdataball.com/) and [Basketball-Reference](https://www.basketball-reference.com/). 
 
 For more information on nomenclature used throughout this app when refering to types of rest days, please visit this [link](https://www.nbastuffer.com/2019-2020-nba-rest-days-stats/).
 
+Game Stats, player images and as shot related data was downloaded using the package [NBAstatR](https://github.com/abresler/nbastatR) which allows users to pin the [stats.nba.com website](https://stats.nba.com/).
+
+Video highlights of the games have been scraped from [Youtube](www.youtube.com)
+
 ## Final Comments
-This app is an ongoing project and new reports or adjustments may be implemented in the future. 
+This app is an ongoing project and new reports or adjustments may be implemented in the future. Data related to teams travel and player load is based on information publicly available from a variety of sources and it may not be an accurate representation of the way teams really managed their schedule.

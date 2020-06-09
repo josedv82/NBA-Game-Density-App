@@ -83,6 +83,13 @@ The Heatmap tab shows rolling index for each team for the whole season, enabling
 
 ![](https://www.dropbox.com/s/9anz1wz0eih6apq/heatmap.png?raw=1)
 
+#### Travel Routes
+The **travel route** tab displays approximate regular season flight paths for each team.
+
+![](https://www.dropbox.com/s/hbvbmeq0rg26mtt/routes.png?raw=1)
+
+The coordinate used are the main coordinates for each city. It is important to stress the fact that these paths are purely estimations based on the location of consecutive games as well as the time elapsed between them. Therefore, they may not be accurate representations of how teams actually managed their travels.
+
 #### Player Load Table
 The **Player Load** table enables league wide comparisons all load related metrics for all players in the season. A variety of filtering options are available at the top for users to slice and filter their data based on their preferences.
 

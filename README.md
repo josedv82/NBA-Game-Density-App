@@ -115,14 +115,14 @@ Users can also opt to look at a moving average of the Index metric for 'x' numbe
 ![](https://www.dropbox.com/s/s4v7y7i3a3jd28d/knob.png?raw=1)  
 
 
-## Data
+## Data Sources
 The data used to create this app was downloaded from [BigDataBall](https://www.bigdataball.com/) and [Basketball-Reference](https://www.basketball-reference.com/). 
 
 For more information on nomenclature used throughout this app when refering to types of rest days, please visit this [link](https://www.nbastuffer.com/2019-2020-nba-rest-days-stats/).
 
-Game Stats, player images and as shot related data was downloaded using the package [NBAstatR](https://github.com/abresler/nbastatR) which allows users to pin the [stats.nba.com website](https://stats.nba.com/).
+Game Stats, player images and all shot related data was downloaded using the package [NBAstatR](https://github.com/abresler/nbastatR) which allows users to pin the [stats.nba.com website](https://stats.nba.com/).
 
-Video highlights of the games have been scraped from [Youtube](www.youtube.com)
+Video highlights of the games have been escraped from [Youtube](www.youtube.com)
 
 ## Final Comments
-This app is an ongoing project and new reports or adjustments may be implemented in the future. Data related to teams travel and player load is based on information publicly available from a variety of sources and it may not be an accurate representation of the way teams really managed their schedule.
+Data related to teams travel and player load is based on information publicly available from a variety of sources as stated above. It may not be an accurate representation of the way teams really managed their schedule.

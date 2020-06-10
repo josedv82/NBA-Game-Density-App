@@ -1,5 +1,5 @@
 # NBA Game Density App
-Simple app to visually explore the density (rest) of the schedule for NBA teams.
+An app to visually explore the density of the schedule for NBA teams as well as individual player loads based on rest days and minutes played.
 
 ## Logo
 

@@ -31,6 +31,7 @@ library(ballr)
 library(grid)
 library(jpeg)
 library(feather)
+library(sever)
 
 
 ###################################################
@@ -130,6 +131,14 @@ url2 <- "https://josedv.shinyapps.io/NBASchedule/"
 
 ##################################################
 
+#code for sever reloading screen
+disconnected <- tagList(
+  h1("NBA Game Density APP"),
+  p("Disconnection due to inactivity"),
+  reload_button("REFRESH", class = "warning")
+)
+
+##################################################
 
 
 
@@ -259,6 +268,9 @@ ui <- dashboardPagePlus(
   body = dashboardBody(
     
     use_waiter(), #this function is needed to add the loader page displayed while the app loads 
+    
+    #bring in sever dependencies
+    use_sever(),
     
     #this code supresses potential error messages that may confuse the user
     tags$style(type="text/css",
@@ -3588,6 +3600,9 @@ server <- function(input, output, session) {
 #Piece of code needed to hide the landing page after 3 secons####
   Sys.sleep(3)
   hide_waiter()
+    
+#piece for the sever loading screen
+  sever(html = disconnected, bg_color = "#000")
 ####################################################################################################
   
   

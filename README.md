@@ -46,7 +46,7 @@ Likewise, **boxscores** for each game are available for both, the selected them 
 
 ![](https://www.dropbox.com/s/1kki6whnxez7gdn/boxscore.png?raw=1)
 
-Finally, users whishing to visualize **shotcharts** for every player/game can do that from the GameCard View. Upon selecting a player, the shot chart will highlight shots made/missed, the locations on the court. The court will have different degrees of shadows to highlight what are the most commong shooting locations for each player/season.
+Finally, users wishing to visualize **shotcharts** for every player/game can do that from the GameCard View. Upon selecting a player, the shot chart will highlight shots made/missed, the locations on the court. The court will have different degrees of shadows to highlight what are the most commong shooting locations for each player/season.
 
 ![](https://www.dropbox.com/s/kzk34afmbjeajwv/shotchart.png?raw=1)
 

@@ -1,3 +1,6 @@
+[![HitCount](http://hits.dwyl.com/josedv82/NBA-Game-Density-App.svg)](http://hits.dwyl.com/josedv82/NBA-Game-Density-App)
+ 
+
 # NBA Game Density App
 An app to visually explore the density of the schedule for NBA teams as well as individual player loads based on rest days and minutes played.
 

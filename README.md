@@ -1,4 +1,3 @@
-[![HitCount](http://hits.dwyl.com/josedv82/NBA-Game-Density-App.svg)](http://hits.dwyl.com/josedv82/NBA-Game-Density-App)
  
 
 # NBA Game Density App

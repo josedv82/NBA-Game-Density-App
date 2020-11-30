@@ -253,7 +253,25 @@ ui <- dashboardPagePlus(
       menuItem("All Teams", tabName = "allteams", icon = icon("th"), startExpanded = F),
       
       #Recommended Reading Tab. This tab displays an interactive table with related research and articles that users can explore
-      menuItem("Research / Media Articles", tabName = "reading", icon = icon("book-reader"), startExpanded = F)
+      menuItem("Research / Media Articles", tabName = "reading", icon = icon("book-reader"), startExpanded = F),
+      
+      tags$br(),
+      tags$br(),
+      tags$br(),
+      tags$hr(),
+      
+      
+      #add airball package link
+      fluidRow(width = "100%", align = "center", style = "padding-right:20px",
+      column(width = 12, style = "background-color:white;",
+      h2("airball", style = "color:black; text-align: middle"),
+      column(width = 5, img(src = 'https://raw.githubusercontent.com/josedv82/airball/master/man/images/airballlogo.PNG', 
+                            width = "100px")),
+      column(width = 7, h6(HTML("An R package <br/> to quickly extract some of <br/> the schedule metrics used <br/> throughout this app."),
+                           style = "color:slategray; text-align: left"),
+                        tags$a(href = "https://github.com/josedv82/airball", "Link", style = "color:dodgerblue; text-align: left"))
+      )
+      )
       
     )#sidebar menu
     

@@ -128,3 +128,6 @@ Video highlights of the games have been escraped from [Youtube](www.youtube.com)
 
 ## Final Comments
 Data related to teams travel and player load is based on information publicly available from a variety of sources as stated above. It may not be an accurate representation of the way teams really managed their schedule.
+
+## AIRBALL
+For those interested about how to quickly calculate some of the metrics used throughout this app, I created an R package called [{airball]](https://github.com/josedv82/airball) which enables quick extraction of these metric s and some of the plots since the 1947 NBA season.

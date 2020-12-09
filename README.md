@@ -5,9 +5,7 @@ An app to visually explore the density of the schedule for NBA teams as well as 
 
 *This app is a proof of concept and it is only maintained for the seasons 2016 to 2020.*
 
-## Logo
-
-<img width="350" src="https://www.dropbox.com/s/5dqbiicb2uifdo2/waiter.gif?raw=1">
+<img src="https://www.dropbox.com/s/5dqbiicb2uifdo2/waiter.gif?raw=1" align="right" width="350" />
 
 
 ## Intro

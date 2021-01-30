@@ -132,4 +132,4 @@ Data related to teams travel and player load is based on information publicly av
 ## AIRBALL
 <img src="https://raw.githubusercontent.com/josedv82/airball/master/man/images/airballlogo.PNG" align="lef" width="150" />
 
-If interested in calculating quickly some of the metrics used throughout this app, I created an R package called [{airball}](https://github.com/josedv82/airball) which enables seamless extraction of travel/schedule metrics and injuries and some travel plots for teams since the 1947 NBA season. 
+If interested in calculating quickly some of the metrics used throughout this app, I created an R package called [{airball}](https://github.com/josedv82/airball) which enables seamless extraction of travel/schedule metrics (by team and player) and injuries for all NBA seasons since the 1947. 

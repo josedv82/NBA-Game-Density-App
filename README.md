@@ -81,7 +81,7 @@ The all teams item provides a summary table counting all types of density for ea
 
 ![](https://www.dropbox.com/s/goxco2tcp6l7bzv/counts.png?raw=1)
 
-The Heatmap tab shows rolling index for each team for the whole season, enabling users compared this metric for all teams at any time.
+The Heatmap tab shows rolling index for each team for the whole season, enabling users to compare this metric for all teams at any time.
 
 ![](https://www.dropbox.com/s/9anz1wz0eih6apq/heatmap.png?raw=1)
 

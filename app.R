@@ -1316,20 +1316,22 @@ server <- function(input, output, session) {
         
         list(
           
-          ` Rest`= formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "3IN4-B2B", "#ff0000", 
+          ` Rest`= formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "4IN5-B2B", "#ff0000",
+                                                                                 ifelse(x == "3IN4-B2B", "#ff0000", 
                                                                                                  ifelse(x == "3IN4", "#ff3300", 
                                                                                                         ifelse(x == "B2B", "#cc6600",
                                                                                                                ifelse(x == "1", "#cc9900",
                                                                                                                       ifelse(x == "2", "#cccc00",
-                                                                                                                             ifelse(x == "3+", "#ccff00", "transparent")))))))), 
+                                                                                                                             ifelse(x == "3+", "#ccff00", "transparent"))))))))), 
           
           
-          `Rest ` = formattable::formatter("span", style = x ~ formattable::style(color = ifelse(x == "3IN4-B2B", "#ff0000", 
+          `Rest ` = formattable::formatter("span", style = x ~ formattable::style(color =  ifelse(x == "4IN5-B2B", "#ff0000",
+                                                                                  ifelse(x == "3IN4-B2B", "#ff0000", 
                                                                                                        ifelse(x == "3IN4", "#ff3300", 
                                                                                                               ifelse(x == "B2B", "#cc6600",
                                                                                                                      ifelse(x == "1", "#cc9900",
                                                                                                                             ifelse(x == "2", "#cccc00",
-                                                                                                                                   ifelse(x == "3+", "#ccff00", "transparent"))))))))
+                                                                                                                                   ifelse(x == "3+", "#ccff00", "transparent")))))))))
           
           
         )) 

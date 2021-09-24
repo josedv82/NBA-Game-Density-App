@@ -3,7 +3,7 @@
 # NBA Game Density App
 An app to visually explore the density of the schedule for NBA teams as well as individual player loads based on rest days and minutes played.  
 
-<img src="https://www.dropbox.com/s/5dqbiicb2uifdo2/waiter.gif?raw=1" align="right" width="350" />
+<img src="https://www.dropbox.com/s/7hclkru7yknd9ur/waiter.gif?raw=1" align="right" width="350" />
 
 
 ## Intro
@@ -26,7 +26,7 @@ In order to do this, the app does not only provide a summary of some of the main
 #### Left SideBar
 The left side bar of the app provides users with the ability to filter by season (last 3 seasons). Besides that, there are 2 menu items 1) Team by Team and 2) All teams.
 
-![](https://www.dropbox.com/s/vd2fsa4bzk59txj/leftside.png?raw=1)
+![](https://www.dropbox.com/s/24dt5l0sna3iccv/leftside.png?raw=1)
 
 #### Team by Team Item
 A user input let users select a team of interest. Upon doing this, a mini-table with game density information is displayed below.
@@ -36,64 +36,64 @@ There are four tabs available within the team by team item:
 ##### Game Card
 Comparison of different parameters for each game, including information about score, location, rest days, game index and moving index as well as a dynamic map tracking flight routes for the selected team prior to the game of interest.
 
-![](https://www.dropbox.com/s/ahz38grcmii0dh8/mainview.png?raw=1)
+![](https://www.dropbox.com/s/6o5l2evle1mutp8/mainview.png?raw=1)
 
 Furthermore, a link to watch the **game highlights** is provided. Currently, more than 90% of the games have video highlights available, providing more than 200 hours of video footage. 
 
-![](https://www.dropbox.com/s/8l3nslpq7jj87b6/frontpage.png?raw=1)
+![](https://www.dropbox.com/s/esp6t75pkqyixfi/frontpage.png?raw=1)
 
 Likewise, **boxscores** for each game are available for both, the selected them and the oponent. Individual game loads are provided along with common game stats for different aspects of the game.
 
-![](https://www.dropbox.com/s/1kki6whnxez7gdn/boxscore.png?raw=1)
+![](https://www.dropbox.com/s/dwogxki8keyqs51/boxscore.png?raw=1)
 
 Finally, users wishing to visualize **shotcharts** for every player/game can do that from the GameCard View. Upon selecting a player, the shot chart will highlight shots made/missed, the locations on the court. The court will have different degrees of shadows to highlight what are the most commong shooting locations for each player/season.
 
-![](https://www.dropbox.com/s/kzk34afmbjeajwv/shotchart.png?raw=1)
+![](https://www.dropbox.com/sh/vc9lul19ovowbrk/AABMO4nkStLZHhkaSbZ1Hct8a?raw=1)
 
 ##### Schedule Table
 A dynamic table showing full season metrics. Different metrics are reported on this table, using color codes to alert users about the magnitude of the parameters. Users can compare differences in metrics between the selected team and the opponents they are facing throughout the season.
 
-![](https://www.dropbox.com/s/k7oph5idrvxl01f/schedule.png?raw=1)
+![](https://www.dropbox.com/s/nb2gv0acdrsqrsn/schedule.png?raw=1)
 
 ##### Rolling View Visualization
 On the 3rd tab, users can interact with a dynamic visualization containing a line chart of the rolling density for the selected team (orange) and the opponents (blue). Complementary, a boxplot chart is provided to better understand the distribution of the data points throughout the season.
 
-![](https://www.dropbox.com/s/2i1lkigsq0cmfi6/rollingview.png?raw=1)
+![](https://www.dropbox.com/s/ymnwepbwuydzifb/rollingview.png?raw=1)
 
 ##### Outcome Tab
 The Outcome tab provides two tables. Table one (left) shows game outcomes by density type for each game. For example, wins and losses in situations when the selected team plays 3 games in 4 days (3IN4) vs a team playing on a back to back (B2B).
 
 The second table (right) simply summarises the number of wins and losses by location (away or home). 
 
-![](https://www.dropbox.com/s/bb9y2fma0ekdw3z/outcome.png?raw=1)
+![](https://www.dropbox.com/s/milrpxxg56go77b/outcome.png?raw=1)
 
 #### Player Load Tab
 Player Load is an arbitrary score calculated based on how many rest days a player had prior to a game as well as the total number of minutes the player was on the court. Based on those two parameters an overall load metric is calculated. The **Player Load** tab enables users to explore longitudinal load trends for each player. 
 
-![](https://www.dropbox.com/s/tqoytpq6gchj0sd/playerLoad.png?raw=1)
+![](https://www.dropbox.com/s/v4rb0c5yjbwwr0k/playerLoad.png?raw=1)
 
 A dynamic search filter is available enabling users to select number of last games and provide cummulative load metrics for those.
 
 #### All Teams Item
 The all teams item provides a summary table counting all types of density for each team for each season. Users can filter by "away games", "home games" or both.
 
-![](https://www.dropbox.com/s/goxco2tcp6l7bzv/counts.png?raw=1)
+![](https://www.dropbox.com/s/6c2gdvg39j0xxa0/counts.png?raw=1)
 
 The Heatmap tab shows rolling index for each team for the whole season, enabling users to compare this metric for all teams at any time.
 
-![](https://www.dropbox.com/s/9anz1wz0eih6apq/heatmap.png?raw=1)
+![](https://www.dropbox.com/s/4rvgkbvi7qasn24/heatmap.png?raw=1)
 
 #### Travel Routes
 The **travel route** tab displays approximate regular season flight paths for each team.
 
-![](https://www.dropbox.com/s/hbvbmeq0rg26mtt/routes.png?raw=1)
+![](https://www.dropbox.com/s/3uqpo6lk7wdtvzx/routes.png?raw=1)
 
 The coordinates used are the main coordinates for each city. It is important to stress the fact that these paths are purely estimations based on the location of consecutive games as well as the time elapsed between them. Therefore, they may not be accurate representations of how teams actually managed their travels.
 
 #### Player Load Table
 The **Player Load** table enables league wide comparisons all load related metrics for all players in the season. A variety of filtering options are available at the top for users to slice and filter their data based on their preferences.
 
-![](https://www.dropbox.com/s/5gobdig5zjmdwk8/playerLoadtable.png?raw=1)  
+![](https://www.dropbox.com/s/iufr1ifc0zod7lk/playerLoadtable.png?raw=1)  
 
 
 #### Research / Media Item
@@ -101,18 +101,18 @@ This part of the app contains a dynamic table showing NBA travel and density rel
 
 All articles listed on the table contained a link that users can follow to reach the original text. New articles (if available) are uploaded monthly. 
 
-![](https://www.dropbox.com/s/sn7yobimrytpqex/research.png?raw=1)
+![](https://www.dropbox.com/s/vmcerp02n1wigsx/research.png?raw=1)
 
 Potentially further reports will be implemented.
 
 ## Game Index Metric and Right Side Bar
 Game Index is a metric that provides information about potential travel/schedule stress a team might be undergoing (note this metric is arbitrary and has not been validated). It is a composite score accounting for several factors such as rest days between games, travels prior to game, direction of travel, time zones crossed, accumulated density, game location. Rather than setting fixed weights for each parameters used to calculate overall game index, we provide options for users to manipulate each parameters based on their own preferences.
 
-![](https://www.dropbox.com/s/mt8hpdwk1s224fj/rightbar.png?raw=1)
+![](https://www.dropbox.com/s/9p3ypb8d0zx2j9m/rightbar.png?raw=1)
 
 Users can also opt to look at a moving average of the Index metric for 'x' number of games. The last tab on the right side bar provides this option.
 
-![](https://www.dropbox.com/s/s4v7y7i3a3jd28d/knob.png?raw=1)  
+![](https://www.dropbox.com/s/eg4z4luupekpg9p/knob.png?raw=1)  
 
 
 ## Data Sources

@@ -7,9 +7,9 @@ An app to visually explore the density of the schedule for NBA teams as well as 
 
 
 ## Intro
-The goal of this app is to enable users manipulate different aspects related to the game density (frequency of games) in the NBA for both, 
-a selected team and its opponents over the last 3 seasons. Users can manipulate factors such as court advantage, travel stress, 
-time zones crossed, game density index, direction of travel, etc. As all these are factors that can impact the fatigue of the players.
+This app enable users manipulate different aspects related to the game density (frequency of games) in the NBA for both, 
+a selected team and its opponents over the last 5 seasons. Users can manipulate factors such as court advantage, travel stress, 
+time zones crossed, game density index, direction of travel, etc to understand period of higher or lower schedule stress.
 
 ## Live Website
 [NBA Game Density App](https://josedv.shinyapps.io/NBASchedule/)

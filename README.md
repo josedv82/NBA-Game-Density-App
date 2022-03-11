@@ -15,11 +15,11 @@ time zones crossed, game density index, direction of travel, etc to understand p
 [NBA Game Density App](https://josedv.shinyapps.io/NBASchedule/)
 
 ## App Description
-Professional sports leagues in America are characterized by dense schedules with teams having to play multiple games every week in different cities. Furthermore, there are many other factors such as late games, frequent travel, crossing different time zones across the country that may affect a team's performance. On top of this, opposing teams are also undergoing the same challenges. Research in the field of Sport Sciences shows the detrimental effect of these factors on games outcomes.
+Professional sports leagues in America are characterized by dense schedules with teams having to play multiple games every week in different cities. Furthermore, there are many other factors such as late games, frequent travel, crossing different time zones across the country that may affect a team's performance. On top of this, opposing teams are also undergoing the same challenges.
 
-The goal of this app is to provide a platform for coaches to manipulate different game density factors to better understand what type of schedule stress teams are undergoing at different times during the season. This can help coaches plan training and recovery strategies with the aim to maximize player's performance.
+The goal of this app is to provide a platform for coaches to manipulate different game density factors to better understand what type of schedule stress teams are undergoing at different times during the season. This can help coaches plan travel, training and recovery strategies accordingly.
 
-In order to do this, the app does not only provide a summary of some of the main metrics in different forms and visualizations, but also a number of inputs (see right sidebar) to allow users to manipulate each potential factor in different ways. Hence the term "simulator".
+In order to do this, the app does not only provide a summary of some of the main metrics in different forms and visualizations, but also a number of inputs (see right sidebar) to let users manipulate each potential factor in different ways.
 
 ## App Workflow
 

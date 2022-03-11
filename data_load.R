@@ -3,7 +3,7 @@
 
 #NBA Game Density APP
 #Jose Fernandez
-#March-June 2020
+#March-June 2020 (Updated March 2022)
 
 #Data Loading File. 
 #Cleans and tidy raw datasets and converts to feather objects for lighter weight

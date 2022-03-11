@@ -1,13 +1,13 @@
  
 
 # NBA Game Density App
-An app to visually explore the density of the schedule for NBA teams as well as individual player loads based on rest days and minutes played.  
+An app to explore the density of the NBA Schedule. 
 
 <img src="https://www.dropbox.com/s/7hclkru7yknd9ur/waiter.gif?raw=1" align="right" width="350" />
 
 
 ## Intro
-This app enable users manipulate different aspects related to the game density (frequency of games) in the NBA for both, 
+This app let users manipulate different aspects related to the game density (frequency of games) in the NBA for both, 
 a selected team and its opponents over the last 5 seasons. Users can manipulate factors such as court advantage, travel stress, 
 time zones crossed, game density index, direction of travel, etc to understand period of higher or lower schedule stress.
 
@@ -15,34 +15,34 @@ time zones crossed, game density index, direction of travel, etc to understand p
 [NBA Game Density App](https://josedv.shinyapps.io/NBASchedule/)
 
 ## App Description
-Professional sports leagues in America are characterized by dense schedules with teams having to play multiple games every week in different cities. Furthermore, there are many other factors such as late games, frequent travel, crossing different time zones across the country that may affect a team's performance. On top of this, opposing teams are also undergoing the same challenges.
+NBA schedules are characterized by high density with teams having to play multiple games every week in different cities. Furthermore, there are many other factors such as late games, frequent travel, different time zones that may affect a team's performance.
 
-The goal of this app is to provide a platform for coaches to manipulate different game density factors to better understand what type of schedule stress teams are undergoing at different times during the season. This can help coaches plan travel, training and recovery strategies accordingly.
+This app provides a platform to manipulate different game density factors to better understand what type of schedule stress teams are undergoing at different times during the season. This can help coaches plan travel, training and recovery strategies accordingly.
 
-In order to do this, the app does not only provide a summary of some of the main metrics in different forms and visualizations, but also a number of inputs (see right sidebar) to let users manipulate each potential factor in different ways.
+Based on the schedule parameters set by the user, the app provides a few different reports and visualization options in two ways, team level and individual player.
 
 ## App Workflow
 
 #### Left SideBar
-The left side bar of the app provides users with the ability to filter by season (last 3 seasons). Besides that, there are 2 menu items 1) Team by Team and 2) All teams.
+Users can control the app and the tabs they want to see from the left side menu. A few filtering options are presented here to filter by season and team.
 
 ![](https://www.dropbox.com/s/24dt5l0sna3iccv/leftside.png?raw=1)
 
 #### Team by Team Item
-A user input let users select a team of interest. Upon doing this, a mini-table with game density information is displayed below.
+Based on the user selection, a mini-table with game density information is displayed below.
 
 There are four tabs available within the team by team item:
 
 ##### Game Card
-Comparison of different parameters for each game, including information about score, location, rest days, game index and moving index as well as a dynamic map tracking flight routes for the selected team prior to the game of interest.
+The landing page of the app. A comparison of different parameters for each game, including information about score, location, rest days, game index and moving index as well as a dynamic map tracking flight routes for the selected team prior to the game of interest.
 
 ![](https://www.dropbox.com/s/6o5l2evle1mutp8/mainview.png?raw=1)
 
-Furthermore, a link to watch the **game highlights** is provided. Currently, more than 90% of the games have video highlights available, providing more than 200 hours of video footage. 
+Furthermore, a link to watch the **game highlights** is provided. Currently, more than 90% of the games have video highlights available, providing more than 200 hours of video footage. *(Video highlights are only available up to the 2020 season)*
 
 ![](https://www.dropbox.com/s/esp6t75pkqyixfi/frontpage.png?raw=1)
 
-Likewise, **boxscores** for each game are available for both, the selected them and the oponent. Individual game loads are provided along with common game stats for different aspects of the game.
+Likewise, **boxscores** for each game are available for both, the selected them and the oponent. Individual player loads are provided along with common game stats for different aspects of the game.
 
 ![](https://www.dropbox.com/s/dwogxki8keyqs51/boxscore.png?raw=1)
 
@@ -51,7 +51,7 @@ Finally, users wishing to visualize **shotcharts** for every player/game can do 
 ![](https://www.dropbox.com/sh/vc9lul19ovowbrk/AABMO4nkStLZHhkaSbZ1Hct8a?raw=1)
 
 ##### Schedule Table
-A dynamic table showing full season metrics. Different metrics are reported on this table, using color codes to alert users about the magnitude of the parameters. Users can compare differences in metrics between the selected team and the opponents they are facing throughout the season.
+Likely the most important report in the app. A dynamic table showing full season metrics. Different metrics are reported on this table, using color codes to alert users about the magnitude of the parameters. This table provides a birds-eye-view of the schedule density to identify periods of higher and lower schedule stress.
 
 ![](https://www.dropbox.com/s/nb2gv0acdrsqrsn/schedule.png?raw=1)
 
@@ -61,7 +61,7 @@ On the 3rd tab, users can interact with a dynamic visualization containing a lin
 ![](https://www.dropbox.com/s/ymnwepbwuydzifb/rollingview.png?raw=1)
 
 ##### Outcome Tab
-The Outcome tab provides two tables. Table one (left) shows game outcomes by density type for each game. For example, wins and losses in situations when the selected team plays 3 games in 4 days (3IN4) vs a team playing on a back to back (B2B).
+The **Outcome tab** provides 2tables.Table one (left) shows game outcomes by density type for each game. For example, wins and losses in situations when the selected team plays 3 games in 4 days (3IN4) vs a team playing on a back to back (B2B).
 
 The second table (right) simply summarises the number of wins and losses by location (away or home). 
 

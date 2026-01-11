@@ -32,22 +32,13 @@ library(ballr)
 library(grid)
 library(jpeg)
 library(png)
-library(feather)
 library(sever)
 
 
 ###################################################
 
-#import feathers objects. This loads the initial datasets that will be used throughout the app####
-articles <- read_feather("article.feather")
-highlights <- read_feather("highlights.feather")
-highlights2 <- read_feather("highlights2.feather")
-pro_file <- read_feather("pro_file.feather")
-shotchart <- read_feather("shotchart.feather")
-game_logs <- read_feather("gamelogs.feather")
-sche <- read_feather("sche.feather")
-acities <- read_feather("acities.feather")
-Logos <- read_feather("logos.feather")
+#import datasets by running the data load pipeline####
+source("data_load.R")
 toronto <- c("Toronto", 43.65, -79.38) #for map
 
 ##################################################

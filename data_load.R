@@ -18,7 +18,6 @@ library(readxl)
 library(RcppRoll)
 library(nbastatR)
 library(ballr)
-library(feather)
 library(maps)
 library(httr)
 library(jsonlite)
@@ -185,7 +184,6 @@ sche <- purrr::map2_dfr(
   mutate(Rest = ifelse(Rest == "3", "3+", Rest)) %>%
   arrange(Date)
 
-write_feather(sche, "sche.feather")
 
 
 #################################################################################
@@ -211,7 +209,6 @@ acities <- us.cities %>%
   bind_rows(tibble::tibble(City = "Toronto", Latitude = 43.65, Longitude = -79.38)) %>%
   distinct()
 
-write_feather(acities, "acities.feather")
 
 
 #################################################################################
@@ -285,7 +282,6 @@ Logos <- sche %>%
            ifelse(Opponent == "Washington Wizards", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/washington-wizards-logo.png' width=200px></img>", 
            ifelse(Opponent == "Utah Jazz", "<img src='https://cdn.freebiesupply.com/images/thumbs/2x/utah-jazz-logo.png' width=200px></img>", "")))))))))))))))))))))))))))))))
 
-write_feather(Logos, "logos.feather")
 
 
 #################################################################################
@@ -308,7 +304,6 @@ all <- shots %>%
          Zone = zoneBasic, Zone2 = nameZone, Range = zoneRange, Distance = distanceShot, locX = locationX,
          locY = locationY)
 
-write_feather(all, "shotchart.feather")
 
 
 #################################################################################
@@ -357,7 +352,6 @@ statlogs2 <- full_join(team_games, player_games) %>% mutate(Participation = roun
 
 
 
-write_feather(statlogs2, "gamelogs.feather")
 
 
 #################################################################################
@@ -366,7 +360,6 @@ write_feather(statlogs2, "gamelogs.feather")
 
 #dataset containing all research and media articles
 articles <- read_excel("articles.xlsx", sheet = "articles") 
-write_feather(articles, "article.feather")
 
 #dataset containing links to video highlights from the NBA content API.
 extract_video_url <- function(x) {
@@ -423,11 +416,8 @@ highlights <- purrr::pmap_dfr(
 )
 
 highlights2 <- highlights %>% select(Team = Opponent, Opponent = Team, Date, Link) #video highlights for away games
-write_feather(highlights, "highlights.feather")
-write_feather(highlights2, "highlights2.feather")
 
 #profile images (headshots) used for shotcharts
 pro_file <- nbastatR::seasons_players(seasons = season_years) %>% select(Player = namePlayer, Image = urlPlayerHeadshot) #loads profile image of players
-write_feather(pro_file, "pro_file.feather")
 
 #################################################################################

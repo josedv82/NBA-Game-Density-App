@@ -20,1296 +20,163 @@ library(nbastatR)
 library(ballr)
 library(feather)
 library(maps)
+library(httr)
+library(jsonlite)
 
 #################################################################################
 
-#loading data from spreadsheets (escraped from NBAStuffer and Basketball Reference####
-
-#NBA Schedule
-data <- read_excel("NBA_Schedule.xlsx", sheet = "schedule")
-
-#Game Scores
-score <- read_excel("nba_scores.xlsx", sheet = "scores")
-
-#Tidying and cleaning the above data. Prepping data for later use#####
-
-dat <- data %>%
-  select(Season = SEASON, Date = DATE, Time = 3, `Away Rest` = `ROAD REST DAYS`, `Road Team` = `ROAD TEAM`, `Home Team` = `HOME TEAM`, `Home Rest` = `HOME REST DAYS`, Arena = ARENA) %>%
-  #mutate(Time = hms::as_hms(Time + 18000)) %>%
-  mutate_if(~'POSIXt' %in% class(.x), as.Date) %>% filter(Season != "2016-17")
-
-sco <- score %>% 
-  select(-Time, -BX, -OT, -Notes) %>%
-  mutate_if(~'POSIXt' %in% class(.x), as.Date) %>% filter(Date > "2017-10-01")
-
-
-#Code performing a series fo team by team cleaning and tidying options (needs refactoring and looping)####
-
-
-a.a <- dat %>%
-  filter(`Road Team` == "New Orleans Pelicans" | `Home Team` == "New Orleans Pelicans") %>% 
-  mutate(Team = "New Orleans Pelicans") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "New Orleans", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-a.b <- sco %>%
-  filter(Team == "New Orleans Pelicans" | Opponent == "New Orleans Pelicans") %>%
-  mutate(Team2 = ifelse(Team == "New Orleans Pelicans", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "New Orleans Pelicans", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "New Orleans Pelicans", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "New Orleans Pelicans", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a <- full_join(a.a, a.b, by = c("Team", "Date", "Opponent"))
-
-
-b.a <- dat %>%
-  filter(`Road Team` == "Los Angeles Lakers" | `Home Team` == "Los Angeles Lakers") %>% 
-  mutate(Team = "Los Angeles Lakers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Los Angeles", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-b.b <- sco %>%
-  filter(Team == "Los Angeles Lakers" | Opponent == "Los Angeles Lakers") %>%
-  mutate(Team2 = ifelse(Team == "Los Angeles Lakers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Los Angeles Lakers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Los Angeles Lakers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Los Angeles Lakers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-b <- full_join(b.a, b.b, by = c("Team", "Date", "Opponent"))
-
-
-c.a <- dat %>%
-  filter(`Road Team` == "Chicago Bulls" | `Home Team` == "Chicago Bulls") %>% 
-  mutate(Team = "Chicago Bulls") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Chicago", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-c.b <- sco %>%
-  filter(Team == "Chicago Bulls" | Opponent == "Chicago Bulls") %>%
-  mutate(Team2 = ifelse(Team == "Chicago Bulls", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Chicago Bulls", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Chicago Bulls", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Chicago Bulls", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws) 
-
-c <- full_join(c.a, c.b, by = c("Team", "Date", "Opponent"))
-
-
-d.a <- dat %>%
-  filter(`Road Team` == "Cleveland Cavaliers" | `Home Team` == "Cleveland Cavaliers") %>% 
-  mutate(Team = "Cleveland Cavaliers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Cleveland", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-
-d.b <- sco %>%
-  filter(Team == "Cleveland Cavaliers" | Opponent == "Cleveland Cavaliers") %>%
-  mutate(Team2 = ifelse(Team == "Cleveland Cavaliers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Cleveland Cavaliers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Cleveland Cavaliers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Cleveland Cavaliers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-d <- full_join(d.a, d.b, by = c("Team", "Date", "Opponent"))
-
-
-e.a <- dat %>%
-  filter(`Road Team` == "Detroit Pistons" | `Home Team` == "Detroit Pistons") %>% 
-  mutate(Team = "Detroit Pistons") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Detroit", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-
-e.b <- sco %>%
-  filter(Team == "Detroit Pistons" | Opponent == "Detroit Pistons") %>%
-  mutate(Team2 = ifelse(Team == "Detroit Pistons", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Detroit Pistons", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Detroit Pistons", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Detroit Pistons", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-e <- full_join(e.a, e.b, by = c("Team", "Date", "Opponent"))
-
-
-f.a <- dat %>%
-  filter(`Road Team` == "Boston Celtics" | `Home Team` == "Boston Celtics") %>% 
-  mutate(Team = "Boston Celtics") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Boston", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-f.b <- sco %>%
-  filter(Team == "Boston Celtics" | Opponent == "Boston Celtics") %>%
-  mutate(Team2 = ifelse(Team == "Boston Celtics", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Boston Celtics", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Boston Celtics", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Boston Celtics", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-f <- full_join(f.a, f.b, by = c("Team", "Date", "Opponent"))
-
-
-g.a <- dat %>%
-  filter(`Road Team` == "Minnesota Timberwolves" | `Home Team` == "Minnesota Timberwolves") %>% 
-  mutate(Team = "Minnesota Timberwolves") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Minnesota", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`) 
-
-
-g.b <- sco %>%
-  filter(Team == "Minnesota Timberwolves" | Opponent == "Minnesota Timberwolves") %>%
-  mutate(Team2 = ifelse(Team == "Minnesota Timberwolves", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Minnesota Timberwolves", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Minnesota Timberwolves", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Minnesota Timberwolves", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-g <- full_join(g.a, g.b, by = c("Team", "Date", "Opponent"))
-
-
-
-h.a <- dat %>%
-  filter(`Road Team` == "Memphis Grizzlies" | `Home Team` == "Memphis Grizzlies") %>% 
-  mutate(Team = "Memphis Grizzlies") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Memphis", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-h.b <- sco %>%
-  filter(Team == "Memphis Grizzlies" | Opponent == "Memphis Grizzlies") %>%
-  mutate(Team2 = ifelse(Team == "Memphis Grizzlies", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Memphis Grizzlies", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Memphis Grizzlies", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Memphis Grizzlies", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-h <- full_join(h.a, h.b, by = c("Team", "Date", "Opponent"))
-
-
-
-i.a <- dat %>%
-  filter(`Road Team` == "Washington Wizards" | `Home Team` == "Washington Wizards") %>% 
-  mutate(Team = "Washington Wizards") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Washington D.C.", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-i.b <- sco %>%
-  filter(Team == "Washington Wizards" | Opponent == "Washington Wizards") %>%
-  mutate(Team2 = ifelse(Team == "Washington Wizards", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Washington Wizards", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Washington Wizards", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Washington Wizards", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-i <- full_join(i.a, i.b, by = c("Team", "Date", "Opponent"))
-
-
-
-j.a <- dat %>%
-  filter(`Road Team` == "New York Knicks" | `Home Team` == "New York Knicks") %>% 
-  mutate(Team = "New York Knicks") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "New York", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-j.b <- sco %>%
-  filter(Team == "New York Knicks" | Opponent == "New York Knicks") %>%
-  mutate(Team2 = ifelse(Team == "New York Knicks", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "New York Knicks", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "New York Knicks", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "New York Knicks", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-j <- full_join(j.a, j.b, by = c("Team", "Date", "Opponent"))
-
-
-
-k.a <- dat %>%
-  filter(`Road Team` == "Oklahoma City Thunder" | `Home Team` == "Oklahoma City Thunder") %>% 
-  mutate(Team = "Oklahoma City Thunder") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Oklahoma", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-k.b <- sco %>%
-  filter(Team == "Oklahoma City Thunder" | Opponent == "Oklahoma City Thunder") %>%
-  mutate(Team2 = ifelse(Team == "Oklahoma City Thunder", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Oklahoma City Thunder", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Oklahoma City Thunder", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Oklahoma City Thunder", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-k <- full_join(k.a, k.b, by = c("Team", "Date", "Opponent"))
-
-
-l.a <- dat %>%
-  filter(`Road Team` == "Denver Nuggets" | `Home Team` == "Denver Nuggets") %>% 
-  mutate(Team = "Denver Nuggets") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Denver", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-l.b <- sco %>%
-  filter(Team == "Denver Nuggets" | Opponent == "Denver Nuggets") %>%
-  mutate(Team2 = ifelse(Team == "Denver Nuggets", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Denver Nuggets", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Denver Nuggets", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Denver Nuggets", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-l <- full_join(l.a, l.b, by = c("Team", "Date", "Opponent"))
-
-
-m.a <- dat %>%
-  filter(`Road Team` == "Sacramento Kings" | `Home Team` == "Sacramento Kings") %>% 
-  mutate(Team = "Sacramento Kings") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Sacramento", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-m.b <- sco %>%
-  filter(Team == "Sacramento Kings" | Opponent == "Sacramento Kings") %>%
-  mutate(Team2 = ifelse(Team == "Sacramento Kings", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Sacramento Kings", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Sacramento Kings", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Sacramento Kings", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-m <- full_join(m.a, m.b, by = c("Team", "Date", "Opponent"))
-
-
-
-n.a <- dat %>%
-  filter(`Road Team` == "Atlanta Hawks" | `Home Team` == "Atlanta Hawks") %>% 
-  mutate(Team = "Atlanta Hawks") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Atlanta", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-n.b <- sco %>%
-  filter(Team == "Atlanta Hawks" | Opponent == "Atlanta Hawks") %>%
-  mutate(Team2 = ifelse(Team == "Atlanta Hawks", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Atlanta Hawks", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Atlanta Hawks", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Atlanta Hawks", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-n <- full_join(n.a, n.b, by = c("Team", "Date", "Opponent"))
-
-
-
-o.a <- dat %>%
-  filter(`Road Team` == "Milwaukee Bucks" | `Home Team` == "Milwaukee Bucks") %>% 
-  mutate(Team = "Milwaukee Bucks") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Milwaukee", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-o.b <- sco %>%
-  filter(Team == "Milwaukee Bucks" | Opponent == "Milwaukee Bucks") %>%
-  mutate(Team2 = ifelse(Team == "Milwaukee Bucks", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Milwaukee Bucks", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Milwaukee Bucks", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Milwaukee Bucks", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-o <- full_join(o.a, o.b, by = c("Team", "Date", "Opponent"))
-
-
-
-p.a <- dat %>%
-  filter(`Road Team` == "Los Angeles Clippers" | `Home Team` == "Los Angeles Clippers") %>% 
-  mutate(Team = "Los Angeles Clippers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Los Angeles", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-p.b <- sco %>%
-  filter(Team == "Los Angeles Clippers" | Opponent == "Los Angeles Clippers") %>%
-  mutate(Team2 = ifelse(Team == "Los Angeles Clippers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Los Angeles Clippers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Los Angeles Clippers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Los Angeles Clippers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-p <- full_join(p.a, p.b, by = c("Team", "Date", "Opponent"))
-
-
-
-q.a <- dat %>%
-  filter(`Road Team` == "Toronto Raptors" | `Home Team` == "Toronto Raptors") %>% 
-  mutate(Team = "Toronto Raptors") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Toronto", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-q.b <- sco %>%
-  filter(Team == "Toronto Raptors" | Opponent == "Toronto Raptors") %>%
-  mutate(Team2 = ifelse(Team == "Toronto Raptors", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Toronto Raptors", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Toronto Raptors", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Toronto Raptors", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-q <- full_join(q.a, q.b, by = c("Team", "Date", "Opponent"))
-
-
-r.a <- dat %>%
-  filter(`Road Team` == "Dallas Mavericks" | `Home Team` == "Dallas Mavericks") %>% 
-  mutate(Team = "Dallas Mavericks") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Dallas", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-r.b <- sco %>%
-  filter(Team == "Dallas Mavericks" | Opponent == "Dallas Mavericks") %>%
-  mutate(Team2 = ifelse(Team == "Dallas Mavericks", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Dallas Mavericks", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Dallas Mavericks", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Dallas Mavericks", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-r <- full_join(r.a, r.b, by = c("Team", "Date", "Opponent"))
-
-
-s.a <- dat %>%
-  filter(`Road Team` == "Phoenix Suns" | `Home Team` == "Phoenix Suns") %>% 
-  mutate(Team = "Phoenix Suns") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Phoenix", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-s.b <- sco %>%
-  filter(Team == "Phoenix Suns" | Opponent == "Phoenix Suns") %>%
-  mutate(Team2 = ifelse(Team == "Phoenix Suns", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Phoenix Suns", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Phoenix Suns", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Phoenix Suns", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-s <- full_join(s.a, s.b, by = c("Team", "Date", "Opponent"))
-
-
-
-t.a <- dat %>%
-  filter(`Road Team` == "Portland Trail Blazers" | `Home Team` == "Portland Trail Blazers") %>% 
-  mutate(Team = "Portland Trail Blazers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Portland", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-t.b <- sco %>%
-  filter(Team == "Portland Trail Blazers" | Opponent == "Portland Trail Blazers") %>%
-  mutate(Team2 = ifelse(Team == "Portland Trail Blazers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Portland Trail Blazers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Portland Trail Blazers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Portland Trail Blazers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-t <- full_join(t.a, t.b, by = c("Team", "Date", "Opponent"))
-
-
-u.a <- dat %>%
-  filter(`Road Team` == "Utah Jazz" | `Home Team` == "Utah Jazz") %>% 
-  mutate(Team = "Utah Jazz") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Utah", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-u.b <- sco %>%
-  filter(Team == "Utah Jazz" | Opponent == "Utah Jazz") %>%
-  mutate(Team2 = ifelse(Team == "Utah Jazz", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Utah Jazz", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Utah Jazz", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Utah Jazz", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-u <- full_join(u.a, u.b, by = c("Team", "Date", "Opponent"))
-
-
-
-v.a <- dat %>%
-  filter(`Road Team` == "Miami Heat" | `Home Team` == "Miami Heat") %>% 
-  mutate(Team = "Miami Heat") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Miami", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-v.b <- sco %>%
-  filter(Team == "Miami Heat" | Opponent == "Miami Heat") %>%
-  mutate(Team2 = ifelse(Team == "Miami Heat", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Miami Heat", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Miami Heat", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Miami Heat", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-v <- full_join(v.a, v.b, by = c("Team", "Date", "Opponent"))
-
-
-w.a <- dat %>%
-  filter(`Road Team` == "Philadelphia 76ers" | `Home Team` == "Philadelphia 76ers") %>% 
-  mutate(Team = "Philadelphia 76ers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Philadelphia", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-w.b <- sco %>%
-  filter(Team == "Philadelphia 76ers" | Opponent == "Philadelphia 76ers") %>%
-  mutate(Team2 = ifelse(Team == "Philadelphia 76ers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Philadelphia 76ers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Philadelphia 76ers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Philadelphia 76ers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-w <- full_join(w.a, w.b, by = c("Team", "Date", "Opponent"))
-
-
-x.a <- dat %>%
-  filter(`Road Team` == "Orlando Magic" | `Home Team` == "Orlando Magic") %>% 
-  mutate(Team = "Orlando Magic") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Orlando", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-x.b <- sco %>%
-  filter(Team == "Orlando Magic" | Opponent == "Orlando Magic") %>%
-  mutate(Team2 = ifelse(Team == "Orlando Magic", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Orlando Magic", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Orlando Magic", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Orlando Magic", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-x <- full_join(x.a, x.b, by = c("Team", "Date", "Opponent"))
-
-
-y.a <- dat %>%
-  filter(`Road Team` == "Indiana Pacers" | `Home Team` == "Indiana Pacers") %>% 
-  mutate(Team = "Indiana Pacers") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Indiana", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-y.b <- sco %>%
-  filter(Team == "Indiana Pacers" | Opponent == "Indiana Pacers") %>%
-  mutate(Team2 = ifelse(Team == "Indiana Pacers", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Indiana Pacers", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Indiana Pacers", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Indiana Pacers", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-y <- full_join(y.a, y.b, by = c("Team", "Date", "Opponent"))
-
-
-
-z.a <- dat %>%
-  filter(`Road Team` == "Golden State Warriors" | `Home Team` == "Golden State Warriors") %>% 
-  mutate(Team = "Golden State Warriors") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "San Francisco", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-z.b <- sco %>%
-  filter(Team == "Golden State Warriors" | Opponent == "Golden State Warriors") %>%
-  mutate(Team2 = ifelse(Team == "Golden State Warriors", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Golden State Warriors", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Golden State Warriors", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Golden State Warriors", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-z <- full_join(z.a, z.b, by = c("Team", "Date", "Opponent"))
-
-
-
-a.1.a.a <- dat %>%
-  filter(`Road Team` == "Brooklyn Nets" | `Home Team` == "Brooklyn Nets") %>% 
-  mutate(Team = "Brooklyn Nets") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "New York", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-a.1.b.b <- sco %>%
-  filter(Team == "Brooklyn Nets" | Opponent == "Brooklyn Nets") %>%
-  mutate(Team2 = ifelse(Team == "Brooklyn Nets", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Brooklyn Nets", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Brooklyn Nets", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Brooklyn Nets", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a.1 <- full_join(a.1.a.a, a.1.b.b, by = c("Team", "Date", "Opponent"))
-
-
-a.2.a.a <- dat %>%
-  filter(`Road Team` == "Charlotte Hornets" | `Home Team` == "Charlotte Hornets") %>% 
-  mutate(Team = "Charlotte Hornets") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Charlotte", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-a.2.b.b <- sco %>%
-  filter(Team == "Charlotte Hornets" | Opponent == "Charlotte Hornets") %>%
-  mutate(Team2 = ifelse(Team == "Charlotte Hornets", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Charlotte Hornets", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Charlotte Hornets", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Charlotte Hornets", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a.2 <- full_join(a.2.a.a, a.2.b.b, by = c("Team", "Date", "Opponent"))
-
-
-a.3.a.a <- dat %>%
-  filter(`Road Team` == "Houston Rockets" | `Home Team` == "Houston Rockets") %>% 
-  mutate(Team = "Houston Rockets") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "Houston", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-
-a.3.b.b <- sco %>%
-  filter(Team == "Houston Rockets" | Opponent == "Houston Rockets") %>%
-  mutate(Team2 = ifelse(Team == "Houston Rockets", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "Houston Rockets", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "Houston Rockets", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "Houston Rockets", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a.3 <- full_join(a.3.a.a, a.3.b.b, by = c("Team", "Date", "Opponent"))
-
-
-a.4.a.a <- dat %>%
-  filter(`Road Team` == "San Antonio Spurs" | `Home Team` == "San Antonio Spurs") %>% 
-  mutate(Team = "San Antonio Spurs") %>%
-  mutate(Location = ifelse(`Road Team` == Team, "Away", "Home")) %>%
-  mutate(Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`)) %>%
-  mutate(Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`)) %>%
-  mutate(`Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`)) %>%
-  mutate(Month = lubridate::month(Date)) %>%
-  select(Season, Team, Month, Date, Time,  Opponent, Location, Arena, Rest, `Opp Rest`) %>%
-  
-  mutate(City = gsub( " .*$", "", Opponent)) %>%
-  mutate(City = ifelse(City == "Los", "Los Angeles", 
-                       ifelse(City == "Golden", "San Francisco", 
-                              ifelse(City == "Brooklyn", "New York", 
-                                     ifelse(City == "San", "San Antonio", 
-                                            ifelse(City == "Washington", "Washington D.C.", City)))))) %>%
-  mutate(City = ifelse(Opponent == "New York Knicks", "New York", City)) %>%
-  mutate(City = ifelse(Opponent == "New Orleans Pelicans", "New Orleans", City)) %>%
-  mutate(City = ifelse(Location == "Home", "San Antonio", City)) %>%
-  select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
-
-a.4.b.b <- sco %>%
-  filter(Team == "San Antonio Spurs" | Opponent == "San Antonio Spurs") %>%
-  mutate(Team2 = ifelse(Team == "San Antonio Spurs", paste(Team, Team_pts), Team)) %>%
-  mutate(Team2 = ifelse(Opponent == "San Antonio Spurs", paste(Opponent, Opp_pts), Team2)) %>%
-  mutate(Opp2 = ifelse(Opponent != "San Antonio Spurs", paste(Opponent, Opp_pts), Opponent)) %>%
-  mutate(Opp2 = ifelse(Opponent == "San Antonio Spurs", paste(Team, Team_pts), Opp2)) %>%
-  select(Date, Team2, Opp2, Attendance) %>%
-  mutate(Team = gsub("[[:digit:]]","",Team2)) %>%
-  mutate(Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2))) %>%
-  mutate(Opponent = gsub("[[:digit:]]","",Opp2)) %>%
-  mutate(Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))) %>%
-  select(-Team2, -Opp2) %>%
-  mutate(Team = ifelse(Team == "Philadelphia ers ",  "Philadelphia 76ers", Team)) %>%
-  mutate(Opponent = ifelse(Opponent == "Philadelphia ers ",  "Philadelphia 76ers", Opponent)) %>%
-  mutate_if(is.character, trimws)
-
-a.4 <- full_join(a.4.a.a, a.4.b.b, by = c("Team", "Date", "Opponent"))
-
-
-
-
+#loading data from NBA stats API (schedule and scores)####
+
+current_date <- Sys.Date()
+current_year <- lubridate::year(current_date)
+current_end_year <- if (lubridate::month(current_date) >= 10) current_year + 1 else current_year
+season_years <- seq(current_end_year - 4, current_end_year)
+season_labels <- sprintf("%d-%02d", season_years - 1, season_years %% 100)
+
+fetch_league_games <- function(season_label) {
+  response <- httr::GET(
+    url = "https://stats.nba.com/stats/leaguegamefinder",
+    query = list(
+      LeagueID = "00",
+      Season = season_label,
+      SeasonType = "Regular Season"
+    ),
+    httr::add_headers(
+      `User-Agent` = "Mozilla/5.0",
+      Referer = "https://www.nba.com/",
+      Origin = "https://www.nba.com"
+    )
+  )
+  httr::stop_for_status(response)
+  payload <- httr::content(response, as = "text", encoding = "UTF-8")
+  data <- jsonlite::fromJSON(payload)
+  tibble::as_tibble(data$resultSets[[1]]$rowSet, .name_repair = "minimal") %>%
+    rlang::set_names(data$resultSets[[1]]$headers) %>%
+    mutate(Season = season_label)
+}
+
+games_raw <- purrr::map_dfr(season_labels, fetch_league_games)
+
+games <- games_raw %>%
+  mutate(
+    Date = as.Date(GAME_DATE),
+    Location = ifelse(stringr::str_detect(MATCHUP, " vs\\. "), "Home", "Away"),
+    Team = TEAM_NAME,
+    Team_pts = PTS
+  ) %>%
+  arrange(Season, Team, Date) %>%
+  group_by(Season, Team) %>%
+  mutate(
+    Rest = pmax(as.integer(Date - lag(Date)) - 1, 0)
+  ) %>%
+  ungroup() %>%
+  mutate(Rest = as.character(Rest))
+
+dat <- games %>%
+  select(GAME_ID, Season, Date, Time = GAME_DATE, Team, Location, Rest) %>%
+  tidyr::pivot_wider(names_from = Location, values_from = c(Team, Rest), names_sep = " ") %>%
+  rename(
+    `Road Team` = `Team Away`,
+    `Home Team` = `Team Home`,
+    `Away Rest` = `Rest Away`,
+    `Home Rest` = `Rest Home`
+  ) %>%
+  mutate(Arena = NA_character_) %>%
+  select(Season, Date, Time, `Away Rest`, `Road Team`, `Home Team`, `Home Rest`, Arena)
+
+sco <- games %>%
+  select(GAME_ID, Date, Team, Team_pts) %>%
+  left_join(
+    games %>% select(GAME_ID, Opponent = Team, Opp_pts = Team_pts),
+    by = "GAME_ID"
+  ) %>%
+  filter(Team != Opponent) %>%
+  mutate(Attendance = NA_real_) %>%
+  select(Date, Team, Opponent, Team_pts, Opp_pts, Attendance)
+
+
+#Code performing a series fo team by team cleaning and tidying options (refactored for looping)####
+
+team_locations <- games_raw %>%
+  select(Team = TEAM_NAME, City = TEAM_CITY) %>%
+  distinct() %>%
+  mutate(
+    City = dplyr::case_when(
+      Team == "Brooklyn Nets" ~ "New York",
+      Team == "Golden State Warriors" ~ "San Francisco",
+      Team == "Minnesota Timberwolves" ~ "Minnesota",
+      Team == "Utah Jazz" ~ "Utah",
+      Team == "Indiana Pacers" ~ "Indiana",
+      Team == "Washington Wizards" ~ "Washington D.C.",
+      Team == "Oklahoma City Thunder" ~ "Oklahoma",
+      TRUE ~ City
+    )
+  )
+
+clean_team_name <- function(name) {
+  name <- stringr::str_trim(name)
+  name <- stringr::str_replace(name, "^Philadelphia ers$", "Philadelphia 76ers")
+  name
+}
+
+sco <- sco %>%
+  mutate(
+    Team = clean_team_name(Team),
+    Opponent = clean_team_name(Opponent)
+  )
+
+opponent_lookup <- team_locations %>%
+  rename(Opponent = Team, City = City)
+
+build_team_schedule <- function(team_name, home_city, dat, sco, opponent_lookup) {
+  schedule <- dat %>%
+    filter(`Road Team` == team_name | `Home Team` == team_name) %>%
+    mutate(
+      Team = team_name,
+      Location = ifelse(`Road Team` == team_name, "Away", "Home"),
+      Opponent = ifelse(Location == "Away", `Home Team`, `Road Team`),
+      Rest = ifelse(Location == "Away", `Away Rest`, `Home Rest`),
+      `Opp Rest` = ifelse(Location == "Away", `Home Rest`, `Away Rest`),
+      Month = lubridate::month(Date)
+    ) %>%
+    select(Season, Team, Month, Date, Time, Opponent, Location, Arena, Rest, `Opp Rest`) %>%
+    left_join(opponent_lookup, by = "Opponent") %>%
+    mutate(City = ifelse(Location == "Home", home_city, City)) %>%
+    select(Season, Team, Month, Date, Time, Opponent, Location, City, Arena, Rest, `Opp Rest`)
+
+  score <- sco %>%
+    filter(Team == team_name | Opponent == team_name) %>%
+    mutate(
+      Team2 = ifelse(Team == team_name, paste(Team, Team_pts), Team),
+      Team2 = ifelse(Opponent == team_name, paste(Opponent, Opp_pts), Team2),
+      Opp2 = ifelse(Opponent != team_name, paste(Opponent, Opp_pts), Opponent),
+      Opp2 = ifelse(Opponent == team_name, paste(Team, Team_pts), Opp2)
+    ) %>%
+    select(Date, Team2, Opp2, Attendance) %>%
+    mutate(
+      Team = gsub("[[:digit:]]","",Team2),
+      Team_pts = as.numeric(gsub("[^0-9.-]", "", Team2)),
+      Opponent = gsub("[[:digit:]]","",Opp2),
+      Opp_pts = as.numeric(gsub("[^0-9.-]", "", Opp2))
+    ) %>%
+    select(-Team2, -Opp2) %>%
+    mutate(
+      Team = clean_team_name(Team),
+      Opponent = clean_team_name(Opponent)
+    ) %>%
+    mutate_if(is.character, trimws)
+
+  full_join(schedule, score, by = c("Team", "Date", "Opponent"))
+}
 
 
 #Code to create master dataet joining all the above####
-sche <- full_join(a,b, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(c, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(d, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(e, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(f, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(g, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(h, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(i, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(j, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(k, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(l, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(m, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(n, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(o, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(p, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(q, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(r, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(s, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(t, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(u, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(v, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(w, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(x, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(y, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(z, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(a.1, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(a.2, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(a.3, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  full_join(a.4, by = c("Season", "Team", "Month", "Date", "Time", "Opponent", "Location", "City", "Arena", "Rest", "Opp Rest", "Attendance", "Team_pts", "Opp_pts")) %>%
-  
+sche <- purrr::map2_dfr(
+  team_locations$Team,
+  team_locations$City,
+  ~build_team_schedule(.x, .y, dat, sco, opponent_lookup)
+) %>%
+
   #corrects a minor bug with sixers scores
   mutate(Opp_pts = ifelse(Opp_pts > 70000, Opp_pts - 76000, 
                           ifelse(Opp_pts %in% 7000:8000, Opp_pts - 7600, Opp_pts))) %>% 
@@ -1325,73 +192,24 @@ write_feather(sche, "sche.feather")
 
 #Code to get city coordinates (longitude and latitude) and overall tidying of the table####
 
-#coordinates for Toronto. It is outside of the US so it needs manual binding
-toronto <- c("Toronto", 43.65, -79.38)
-
 #coordinates for all US cities where games are playes
-acities <- us.cities %>% 
-  filter(name == "Houston TX" | 
-           name == "Oklahoma City OK" |
-           name == "New York NY" |
-           name == "Charlotte NC" | 
-           name == "Miami FL" |
-           name == "Phoenix AZ" | 
-           name == "Salt Lake City UT" |
-           name == "Los Angeles CA" | 
-           name == "Dallas TX" |
-           name == "Milwaukee WI" | 
-           name == "Philadelphia PA" | 
-           name == "Minneapolis MN" |
-           name == "San Francisco CA" | 
-           name == "Portland OR" |
-           name == "Denver CO" |
-           name == "Sacramento CA" | 
-           name == "Boston MA" |
-           name == "Detroit MI" | 
-           name == "Memphis TN" |
-           name == "Cleveland OH" | 
-           name == "Chicago IL" |
-           name == "Atlanta GA" |
-           name == "WASHINGTON DC" |
-           name == "Indianapolis IN" |
-           name == "San Antonio TX" |
-           name == "New Orleans LA" |
-           name == "Orlando FL") %>%
-  
-  select(City = name, Latitude = lat, Longitude = long) %>%
-  
-  mutate(City = ifelse( City == "New Orleans LA", "New Orleans", 
-                ifelse( City == "Houston TX", "Houston",
-                ifelse( City == "Oklahoma City OK", "Oklahoma",
-                ifelse( City == "New York NY", "New York",
-                ifelse( City == "Charlotte NC", "Charlotte",
-                ifelse( City == "Miami FL", "Miami",
-                ifelse( City == "Phoenix AZ", "Phoenix",
-                ifelse( City == "Salt Lake City UT", "Utah",
-                ifelse( City == "Los Angeles CA", "Los Angeles",
-                ifelse( City == "Dallas TX", "Dallas",
-                ifelse( City == "Milwaukee WI", "Milwaukee",
-                ifelse( City == "Philadelphia PA", "Philadelphia",
-                ifelse( City == "Minneapolis MN", "Minnesota",
-                ifelse( City == "San Francisco CA", "San Francisco",
-                ifelse( City == "Portland OR", "Portland",
-                ifelse( City == "Denver CO", "Denver",
-                ifelse( City == "Sacramento CA", "Sacramento",
-                ifelse( City == "Boston MA", "Boston",
-                ifelse( City == "Detroit MI", "Detroit",
-                ifelse( City == "Memphis TN", "Memphis",
-                ifelse( City == "Cleveland OH", "Cleveland",
-                ifelse( City == "Chicago IL", "Chicago",
-                ifelse( City == "Orlando FL", "Orlando",
-                ifelse( City == "Atlanta GA", "Atlanta",
-                ifelse( City == "WASHINGTON DC", "Washington D.C.",
-                ifelse( City == "Indianapolis IN", "Indiana",
-                ifelse( City == "San Antonio TX", "San Antonio", "Toronto")))))))))))))))))))))))))))) %>%
-  
-  #binding toronto with all US cities
-  rbind(toronto) %>%
-  
-  ungroup()
+city_lookup <- tibble::tibble(
+  City = c("Atlanta", "Boston", "Charlotte", "Chicago", "Cleveland", "Dallas", "Denver", "Detroit",
+           "Houston", "Indiana", "Los Angeles", "Memphis", "Miami", "Milwaukee", "Minnesota", "New Orleans",
+           "New York", "Oklahoma", "Orlando", "Philadelphia", "Phoenix", "Portland", "Sacramento",
+           "San Antonio", "San Francisco", "Utah", "Washington D.C."),
+  us_name = c("Atlanta GA", "Boston MA", "Charlotte NC", "Chicago IL", "Cleveland OH", "Dallas TX", "Denver CO",
+              "Detroit MI", "Houston TX", "Indianapolis IN", "Los Angeles CA", "Memphis TN", "Miami FL",
+              "Milwaukee WI", "Minneapolis MN", "New Orleans LA", "New York NY", "Oklahoma City OK", "Orlando FL",
+              "Philadelphia PA", "Phoenix AZ", "Portland OR", "Sacramento CA", "San Antonio TX", "San Francisco CA",
+              "Salt Lake City UT", "WASHINGTON DC")
+)
+
+acities <- us.cities %>%
+  inner_join(city_lookup, by = c("name" = "us_name")) %>%
+  transmute(City, Latitude = lat, Longitude = long) %>%
+  bind_rows(tibble::tibble(City = "Toronto", Latitude = 43.65, Longitude = -79.38)) %>%
+  distinct()
 
 write_feather(acities, "acities.feather")
 
@@ -1474,70 +292,21 @@ write_feather(Logos, "logos.feather")
 
 #Loading shotchart datasets using NBAstatR package####
 
-#shortcharts for all players and games for 2018 season
-y2018 <- teams_shots(
+shots <- teams_shots(
   all_active_teams = T,
   season_types = "Regular Season",
-  seasons = 2018, #adjust dinamically based on season filter
+  seasons = season_years,
   measures = "FGA",
-  #date_from = "20171001",
-  #date_to = "20200401",
   return_message = F,
-  nest_data = F)
+  nest_data = F
+)
 
-#shortcharts for all players and games for 2019 season
-y2019 <- teams_shots(
-  all_active_teams = T,
-  season_types = "Regular Season",
-  seasons = 2019, #adjust dinamically based on season filter
-  measures = "FGA",
-  #date_from = "20171001",
-  #date_to = "20200401",
-  return_message = F,
-  nest_data = F)
-
-#shortchart for all players and games for 2020 season
-y2020 <- teams_shots(
-  all_active_teams = T,
-  season_types = "Regular Season",
-  seasons = 2020, #adjust dinamically based on season filter
-  measures = "FGA",
-  #date_from = "20171001",
-  #date_to = "20200401",
-  return_message = F,
-  nest_data = F)
-
-#shortchart for all players and games for 2021 season
-y2021 <- teams_shots(
-  all_active_teams = T,
-  season_types = "Regular Season",
-  seasons = 2021, #adjust dinamically based on season filter
-  measures = "FGA",
-  #date_from = "20171001",
-  #date_to = "20200401",
-  return_message = F,
-  nest_data = F)
-
-
-#shortchart for all players and games for 2022 season
-y2022 <- teams_shots(
-  all_active_teams = T,
-  season_types = "Regular Season",
-  seasons = 2022, #adjust dinamically based on season filter
-  measures = "FGA",
-  #date_from = "20171001",
-  #date_to = "20200401",
-  return_message = F,
-  nest_data = F)
-
-
-
-#joining all seasons above into one table
-all <- full_join(y2018, y2019) %>% full_join(y2020) %>% full_join(y2021) %>% full_join(y2022) %>%
-  mutate(Date = as.Date(as.character(dateGame), format="%Y%m%d")) %>%
-  select(Season = slugSeason, Date, Player = namePlayer, Team = nameTeam, Event = typeEvent, Action = typeAction, Shot = typeShot, 
-         Quarter = numberPeriod, minRemaining = minutesRemaining, secRemaining = secondsRemaining, Zone = zoneBasic, Zone2 = nameZone, Range = zoneRange, 
-         Distance = distanceShot, locX = locationX, locY = locationY)
+all <- shots %>%
+  mutate(Date = as.Date(as.character(dateGame), format = "%Y%m%d")) %>%
+  select(Season = slugSeason, Date, Player = namePlayer, Team = nameTeam, Event = typeEvent, Action = typeAction,
+         Shot = typeShot, Quarter = numberPeriod, minRemaining = minutesRemaining, secRemaining = secondsRemaining,
+         Zone = zoneBasic, Zone2 = nameZone, Range = zoneRange, Distance = distanceShot, locX = locationX,
+         locY = locationY)
 
 write_feather(all, "shotchart.feather")
 
@@ -1546,7 +315,7 @@ write_feather(all, "shotchart.feather")
 
 #Loading Game Logs and Stats for each game in the last 3 seasons using NBAstatR function####
 statlogs <- game_logs(
-  seasons = 2018:2022,
+  seasons = season_years,
   league = "NBA",
   result_types = "player",
   season_types = "Regular Season",
@@ -1599,19 +368,66 @@ write_feather(statlogs2, "gamelogs.feather")
 articles <- read_excel("articles.xlsx", sheet = "articles") 
 write_feather(articles, "article.feather")
 
-#dataset containing links to video highlights scraped from youtube. Split for home an away games as there are two instances for each game (team and opponent)
-highlights <- read_excel("highlights.xlsx", sheet = "games") %>% mutate(Date = as.Date(Date, origin = "1970-01-01")) %>% select(-Season)#video highlights
+#dataset containing links to video highlights from the NBA content API.
+extract_video_url <- function(x) {
+  if (is.null(x)) {
+    return(NA_character_)
+  }
+  if (is.character(x)) {
+    urls <- x[stringr::str_detect(x, "^https?://")]
+    if (length(urls) > 0) {
+      return(urls[[1]])
+    }
+    return(NA_character_)
+  }
+  if (is.list(x)) {
+    for (item in x) {
+      url <- extract_video_url(item)
+      if (!is.na(url)) {
+        return(url)
+      }
+    }
+  }
+  NA_character_
+}
+
+fetch_game_highlight <- function(game_id, team, opponent, date) {
+  response <- httr::GET(
+    url = sprintf("https://content-api-prod.nba.com/public/1/nba/v2/en-us/game/%s/videos.json", game_id),
+    httr::add_headers(
+      `User-Agent` = "Mozilla/5.0",
+      Referer = "https://www.nba.com/",
+      Origin = "https://www.nba.com"
+    )
+  )
+  if (httr::http_error(response)) {
+    return(tibble::tibble(Team = team, Opponent = opponent, Date = date, Link = NA_character_))
+  }
+  payload <- httr::content(response, as = "text", encoding = "UTF-8")
+  data <- jsonlite::fromJSON(payload, simplifyVector = FALSE)
+  link <- extract_video_url(data)
+  tibble::tibble(Team = team, Opponent = opponent, Date = date, Link = link)
+}
+
+highlights_index <- games_raw %>%
+  mutate(
+    Date = as.Date(GAME_DATE),
+    Team = TEAM_NAME,
+    Opponent = stringr::str_trim(stringr::str_replace(MATCHUP, ".* (vs\\.|@) ", ""))
+  ) %>%
+  distinct(GAME_ID, Team, Opponent, Date)
+
+highlights <- purrr::pmap_dfr(
+  list(highlights_index$GAME_ID, highlights_index$Team, highlights_index$Opponent, highlights_index$Date),
+  fetch_game_highlight
+)
+
 highlights2 <- highlights %>% select(Team = Opponent, Opponent = Team, Date, Link) #video highlights for away games
 write_feather(highlights, "highlights.feather")
 write_feather(highlights2, "highlights2.feather")
 
 #profile images (headshots) used for shotcharts
-pro_file <- nbastatR::seasons_players(seasons = 2016:2022) %>% select(Player = namePlayer, Image = urlPlayerHeadshot) #loads profile image of players
+pro_file <- nbastatR::seasons_players(seasons = season_years) %>% select(Player = namePlayer, Image = urlPlayerHeadshot) #loads profile image of players
 write_feather(pro_file, "pro_file.feather")
 
 #################################################################################
-
-
-
-
-
